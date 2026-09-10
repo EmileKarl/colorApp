@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "Color Code",
+    "slug": "color-code",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "colorcode",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.colorcode.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Color Code utilise la caméra pour scanner la couleur d'un objet réel et en extraire le code (HEX/RGB/HSL).",
+        "NSPhotoLibraryUsageDescription": "Color Code peut extraire une couleur à partir d'une photo de votre galerie.",
+        "NSPhotoLibraryAddUsageDescription": "Color Code peut enregistrer les cartes de couleur partageables dans votre galerie."
+      }
+    },
+    "android": {
+      "package": "com.colorcode.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-splash-screen",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Color Code utilise la caméra pour scanner la couleur d'un objet réel."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Color Code peut extraire une couleur à partir d'une photo de votre galerie."
+        }
+      ],
+      "expo-sharing"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
