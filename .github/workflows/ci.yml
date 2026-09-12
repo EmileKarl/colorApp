@@ -28,3 +28,9 @@ jobs:
 
       - name: Unit tests
         run: npm test -- --ci
+
+      # Catches SDK/dependency version drift, invalid app.json fields and
+      # missing native peer dependencies — the class of problem that only
+      # shows up as a confusing runtime crash on a real device.
+      - name: Expo project health
+        run: npx expo-doctor
