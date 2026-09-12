@@ -81,6 +81,25 @@ docs/
   PRODUCT_DISCOVERY.md  Audit de faisabilité, roadmap, architecture, coûts
 ```
 
+## Contrainte importante : compatibilité Expo Go
+
+L'app n'utilise **que des modules natifs inclus dans Expo Go** (les paquets `expo-*` officiels,
+plus `react-native-view-shot`, `react-native-svg` et `@react-native-async-storage/async-storage`,
+qui figurent dans `node_modules/expo/bundledNativeModules.json`). C'est ce qui permet de tester
+sur un téléphone avec Expo Go, sans compte développeur Apple payant ni development build.
+
+Avant d'ajouter une dépendance contenant du code natif, vérifie qu'elle est dans ce fichier :
+
+```bash
+grep "<nom-du-paquet>" node_modules/expo/bundledNativeModules.json
+```
+
+Si elle n'y figure pas, l'app plantera sur l'appareil avec
+`Cannot find native module '...'` — et, si l'import est en haut d'un fichier de route, l'erreur
+se manifestera de façon trompeuse comme `Cannot read property 'ErrorBoundary' of undefined`.
+C'est précisément pourquoi l'extraction de couleur est écrite en JavaScript pur
+(`src/lib/pixels.ts`) plutôt qu'avec une librairie native.
+
 ## Sécurité et vie privée (résumé — détails dans `docs/PRODUCT_DISCOVERY.md` et `supabase/README.md`)
 
 - Row Level Security activée sur toutes les tables ; un utilisateur ne modifie jamais les

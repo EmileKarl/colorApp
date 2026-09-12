@@ -99,6 +99,12 @@ export default function ScanScreen() {
           facing={facing}
           enableTorch={facing === "back" && torchOn}
         />
+        {/* Marks the area extractDominantColor actually samples (the centered
+            40% square), so what the user aims at is what gets measured. */}
+        <View style={styles.reticleLayer} pointerEvents="none">
+          <View style={styles.reticle} />
+        </View>
+
         <View style={styles.overlayControls} pointerEvents="box-none">
           {facing === "back" ? (
             <Pressable
@@ -156,7 +162,9 @@ export default function ScanScreen() {
           <View style={styles.galleryButton} />
         </View>
         <Text style={[styles.hint, { color: theme.subtext }]}>
-          {busy ? "Analyse en cours…" : "Vise une couleur, puis appuie sur le déclencheur"}
+          {busy
+            ? "Analyse en cours…"
+            : "Place la couleur dans le carré, puis appuie sur le déclencheur"}
         </Text>
       </View>
     </View>
@@ -167,6 +175,23 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   cameraWrap: { flex: 1, margin: spacing.md, borderRadius: 24, overflow: "hidden" },
   camera: { flex: 1 },
+  reticleLayer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reticle: {
+    width: "40%",
+    aspectRatio: 1,
+    maxWidth: 180,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.9)",
+  },
   overlayControls: {
     position: "absolute",
     top: spacing.md,
