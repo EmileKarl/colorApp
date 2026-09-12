@@ -10,7 +10,7 @@ import { spacing, useTheme } from "../../src/theme";
 export default function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { user, signOut, deleteAccount } = useAuth();
+  const { user, isModerator, signOut, deleteAccount } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -61,6 +61,13 @@ export default function ProfileScreen() {
           Compte créé le {new Date(user.created_at).toLocaleDateString()}
         </Text>
         {error ? <ErrorBanner message={error} /> : null}
+        {isModerator ? (
+          <PrimaryButton
+            label="File de modération"
+            onPress={() => router.push("/moderation")}
+            variant="secondary"
+          />
+        ) : null}
         <PrimaryButton label="Se déconnecter" onPress={signOut} variant="secondary" />
         <PrimaryButton
           label="Supprimer mon compte"

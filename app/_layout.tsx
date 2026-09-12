@@ -24,6 +24,10 @@ export default function RootLayout() {
             name="auth/sign-up"
             options={{ presentation: "modal", headerShown: true, title: "Créer un compte" }}
           />
+          <Stack.Screen
+            name="moderation"
+            options={{ presentation: "modal", headerShown: true, title: "Modération" }}
+          />
         </Stack>
       </AuthProvider>
     </SafeAreaProvider>
