@@ -1,11 +1,11 @@
 import * as Haptics from "expo-haptics";
-import * as ImageManipulator from "expo-image-manipulator";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import ViewShot, { type ViewShotRef } from "react-native-view-shot";
 
 import { ColorSwatch } from "../src/components/ColorSwatch";
+import { ConfidencePanel } from "../src/components/ConfidencePanel";
 import { CodeRow } from "../src/components/CodeRow";
 import { ErrorBanner } from "../src/components/ErrorBanner";
 import { HarmonyPalette } from "../src/components/HarmonyPalette";
@@ -13,7 +13,8 @@ import { PrimaryButton } from "../src/components/PrimaryButton";
 import { useAuth } from "../src/context/AuthContext";
 import { saveColorToCollection } from "../src/lib/collectionApi";
 import { createColor, findExistingColor, proposeColorName } from "../src/lib/communityApi";
-import { extractDominantColor } from "../src/lib/extractColor";
+import { analyzeImageColor } from "../src/lib/extractColor";
+import type { AnalyzeColorResult } from "../src/color-engine/pipeline/analyzeColor";
 import { FAMILY_LABEL_FR, getColorFamily, hexToRgb, nearestNamedColor, rgbToHsl } from "../src/lib/color";
 import { STARTER_COLOR_NAMES } from "../src/data/starterColorNames";
 import type { ColorRow } from "../src/types/database";
@@ -27,6 +28,7 @@ export default function ResultScreen() {
   const shotRef = useRef<ViewShotRef>(null);
 
   const [hex, setHex] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<AnalyzeColorResult | null>(null);
   const [status, setStatus] = useState<"extracting" | "ready" | "error">("extracting");
   const [error, setError] = useState<string | null>(null);
   const [label, setLabel] = useState("");
@@ -46,14 +48,14 @@ export default function ResultScreen() {
         return;
       }
       try {
-        // Downscale first: cheaper native processing and a more "averaged"
-        // sample, which is somewhat less sensitive to a single noisy pixel.
-        const resized = await ImageManipulator.manipulateAsync(uri, [{ resize: { width: 200 } }], {
-          compress: 0.8,
-        });
-        const extracted = await extractDominantColor(resized.uri);
+        // Analyse the original capture directly. An intermediate JPEG
+        // round-trip here would compress the very values we are measuring;
+        // the engine does its own lossless downscale internally.
+        const measurement = await analyzeImageColor(uri);
         if (cancelled) return;
+        const extracted = measurement.dominantColor.hex;
         setHex(extracted);
+        setAnalysis(measurement);
         setStatus("ready");
 
         try {
@@ -214,6 +216,8 @@ export default function ResultScreen() {
         <CodeRow label="HSL" value={`hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`} />
         <CodeRow label="Famille" value={FAMILY_LABEL_FR[family]} />
       </View>
+
+      {analysis ? <ConfidencePanel analysis={analysis} /> : null}
 
       <View style={styles.harmonySection}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Palette harmonieuse</Text>
