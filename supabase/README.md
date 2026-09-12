@@ -25,6 +25,18 @@ données, et les actions de modération sont réservées aux profils `role in ('
 - Les noms et couleurs restent au statut `pending`/non publiés tant qu'un modérateur ne les a pas
   approuvés (`color_names.status`).
 
+## Promouvoir un modérateur
+
+Il n'y a volontairement aucune interface dans l'app pour changer le rôle d'un compte (éviter
+qu'un utilisateur puisse se l'attribuer lui-même). Pour donner accès à l'écran de modération de
+l'app à un compte existant, exécute dans l'éditeur SQL Supabase :
+
+```sql
+update public.profiles set role = 'moderator' where id = '<uuid-du-compte>';
+```
+
+L'`id` correspond à l'UUID visible dans **Authentication → Users**.
+
 ## Suppression de compte (§12, Loi 25)
 
 La fonction `delete_own_account()` est appelable via

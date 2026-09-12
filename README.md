@@ -15,9 +15,14 @@ justification des choix techniques et l'estimation des coûts.
 - ✅ Sauvegarde personnelle (collection privée, par compte)
 - ✅ Détection de couleur déjà connue de la communauté (dédoublonnage par proximité de couleur)
 - ✅ Proposition de nom de couleur → file de modération → vote communautaire → classement
+- ✅ Interface de modération (approuver/rejeter une proposition), réservée aux comptes
+  modérateur/admin
 - ✅ Carte partageable (image) générée depuis l'écran résultat
+- ✅ Palette de couleurs harmonieuses (complémentaire + analogues), filtres par famille dans le
+  classement communautaire
 - ✅ Authentification par courriel, suppression de compte (droit à l'effacement)
-- ⏳ Modération (interface admin), feed social, gamification : prévus en MVP4 (non commencés)
+- ✅ Retour haptique, icônes de navigation, contrôles caméra (lampe, bascule avant/arrière)
+- ⏳ Feed social, profils publics, gamification : prévus en MVP4 (non commencés)
 - ⏳ Paiements / fonctionnalités premium : prévus en MVP5 (non commencés)
 
 ## Démarrage
