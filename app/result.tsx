@@ -1,18 +1,20 @@
+import * as Haptics from "expo-haptics";
 import * as ImageManipulator from "expo-image-manipulator";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import ViewShot, { type ViewShotRef } from "react-native-view-shot";
 
 import { ColorSwatch } from "../src/components/ColorSwatch";
 import { CodeRow } from "../src/components/CodeRow";
 import { ErrorBanner } from "../src/components/ErrorBanner";
+import { HarmonyPalette } from "../src/components/HarmonyPalette";
 import { PrimaryButton } from "../src/components/PrimaryButton";
 import { useAuth } from "../src/context/AuthContext";
 import { saveColorToCollection } from "../src/lib/collectionApi";
 import { createColor, findExistingColor, proposeColorName } from "../src/lib/communityApi";
 import { extractDominantColor } from "../src/lib/extractColor";
-import { getColorFamily, hexToRgb, nearestNamedColor, rgbToHsl } from "../src/lib/color";
+import { FAMILY_LABEL_FR, getColorFamily, hexToRgb, nearestNamedColor, rgbToHsl } from "../src/lib/color";
 import { STARTER_COLOR_NAMES } from "../src/data/starterColorNames";
 import type { ColorRow } from "../src/types/database";
 import { spacing, useTheme } from "../src/theme";
@@ -91,6 +93,7 @@ export default function ResultScreen() {
     try {
       await saveColorToCollection({ userId: user.id, hex, label, sourceImageUrl: uri });
       setSaved(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
       setError("La sauvegarde a échoué. Vérifie ta connexion et réessaie.");
     } finally {
@@ -130,6 +133,7 @@ export default function ResultScreen() {
       }
       await proposeColorName({ colorId: color.id, name, proposedBy: user.id });
       setNameProposed(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
       setError(
         "La proposition a échoué. Ce nom existe peut-être déjà, ou la limite horaire de propositions est atteinte.",
@@ -155,7 +159,11 @@ export default function ResultScreen() {
   if (status === "extracting") {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <Text style={{ color: theme.subtext }}>Analyse de la couleur…</Text>
+        <ActivityIndicator size="large" color={theme.accent} />
+        <Text style={[styles.loadingTitle, { color: theme.text }]}>Analyse de la couleur…</Text>
+        <Text style={[styles.loadingHint, { color: theme.subtext }]}>
+          Un bon éclairage naturel donne un résultat plus fiable.
+        </Text>
       </View>
     );
   }
@@ -204,7 +212,12 @@ export default function ResultScreen() {
         <CodeRow label="HEX" value={hex.toUpperCase()} />
         <CodeRow label="RGB" value={`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`} />
         <CodeRow label="HSL" value={`hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`} />
-        <CodeRow label="Famille" value={family} />
+        <CodeRow label="Famille" value={FAMILY_LABEL_FR[family]} />
+      </View>
+
+      <View style={styles.harmonySection}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Palette harmonieuse</Text>
+        <HarmonyPalette hex={hex} />
       </View>
 
       <Text style={[styles.disclaimer, { color: theme.subtext }]}>
@@ -288,4 +301,8 @@ const styles = StyleSheet.create({
   },
   proposeTitle: { fontSize: 15, fontWeight: "700" },
   proposeHint: { fontSize: 12 },
+  harmonySection: { gap: spacing.sm },
+  sectionTitle: { fontSize: 15, fontWeight: "700" },
+  loadingTitle: { fontSize: 15, fontWeight: "600" },
+  loadingHint: { fontSize: 12, textAlign: "center", paddingHorizontal: spacing.lg },
 });
