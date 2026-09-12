@@ -21,6 +21,37 @@ export type ColorFamily =
   | "black"
   | "white";
 
+export const ALL_COLOR_FAMILIES: ColorFamily[] = [
+  "red",
+  "orange",
+  "yellow",
+  "green",
+  "cyan",
+  "blue",
+  "purple",
+  "pink",
+  "brown",
+  "gray",
+  "black",
+  "white",
+];
+
+/** French display labels for each family — the raw family id is English/snake-case only. */
+export const FAMILY_LABEL_FR: Record<ColorFamily, string> = {
+  red: "Rouge",
+  orange: "Orange",
+  yellow: "Jaune",
+  green: "Vert",
+  cyan: "Cyan",
+  blue: "Bleu",
+  purple: "Violet",
+  pink: "Rose",
+  brown: "Brun",
+  gray: "Gris",
+  black: "Noir",
+  white: "Blanc",
+};
+
 const HEX_RE = /^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/;
 
 export function isValidHex(hex: string): boolean {
@@ -181,4 +212,25 @@ export function isSameColor(a: string, b: string): boolean {
 /** Deterministic short id derived from a normalized hex, used before a DB id exists. */
 export function colorLocalId(hex: string): string {
   return normalizeHex(hex).slice(1);
+}
+
+function rotateHue(hex: string, degrees: number): string {
+  const hsl = rgbToHsl(hexToRgb(hex));
+  const h = ((hsl.h + degrees) % 360 + 360) % 360;
+  return rgbToHex(hslToRgb({ ...hsl, h }));
+}
+
+/** The color directly opposite on the hue wheel (180°) — the classic "contrast" pairing. */
+export function getComplementary(hex: string): string {
+  return rotateHue(hex, 180);
+}
+
+/** The two neighboring hues (±30°) that read as harmonious alongside the source color. */
+export function getAnalogous(hex: string): [string, string] {
+  return [rotateHue(hex, -30), rotateHue(hex, 30)];
+}
+
+/** The two other points of an evenly-spaced triangle on the hue wheel (±120°). */
+export function getTriadic(hex: string): [string, string] {
+  return [rotateHue(hex, 120), rotateHue(hex, 240)];
 }

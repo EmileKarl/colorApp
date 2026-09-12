@@ -1,7 +1,10 @@
 import {
   colorDistance,
   colorLocalId,
+  getAnalogous,
   getColorFamily,
+  getComplementary,
+  getTriadic,
   hexToRgb,
   hslToRgb,
   isSameColor,
@@ -100,5 +103,28 @@ describe("isSameColor / colorLocalId", () => {
   it("derives a stable local id from a hex value", () => {
     expect(colorLocalId("#ABC")).toBe("aabbcc");
     expect(colorDistance({ r: 0, g: 0, b: 0 }, { r: 0, g: 0, b: 0 })).toBe(0);
+  });
+});
+
+describe("color harmony", () => {
+  it("computes the complementary color as the opposite hue", () => {
+    expect(getComplementary("#ff0000")).toBe(rgbToHex(hslToRgb({ h: 180, s: 100, l: 50 })));
+  });
+
+  it("wraps the complementary hue past 360°", () => {
+    const source = rgbToHex(hslToRgb({ h: 200, s: 100, l: 50 })); // + 180 = 380 -> 20
+    expect(rgbToHsl(hexToRgb(getComplementary(source))).h).toBe(20);
+  });
+
+  it("computes two analogous colors 30° apart on each side", () => {
+    const [left, right] = getAnalogous("#ff0000");
+    expect(rgbToHsl(hexToRgb(left)).h).toBe(330);
+    expect(rgbToHsl(hexToRgb(right)).h).toBe(30);
+  });
+
+  it("computes two triadic colors 120° apart", () => {
+    const [a, b] = getTriadic("#ff0000");
+    expect(rgbToHsl(hexToRgb(a)).h).toBe(120);
+    expect(rgbToHsl(hexToRgb(b)).h).toBe(240);
   });
 });
