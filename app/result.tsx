@@ -282,10 +282,16 @@ export default function ResultScreen() {
 
       <View style={styles.actions}>
         <PrimaryButton
+          label="Appliquer à un objet"
+          icon="cube-outline"
+          onPress={() => router.push({ pathname: "/objects", params: { hex } })}
+        />
+        <PrimaryButton
           label={saved ? "Sauvegardée ✓" : "Sauvegarder"}
           onPress={onSave}
           loading={saving}
           disabled={saved}
+          variant="secondary"
         />
         <PrimaryButton label="Partager la carte" onPress={onShare} variant="secondary" />
         <PrimaryButton

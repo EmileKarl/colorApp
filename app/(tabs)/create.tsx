@@ -1,4 +1,5 @@
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import React, { useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import ViewShot, { type ViewShotRef } from "react-native-view-shot";
@@ -33,6 +34,7 @@ import { spacing, useTheme } from "../../src/theme";
  */
 export default function CreateScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { colors: recent } = useRecentColors();
   const shotRef = useRef<ViewShotRef>(null);
 
@@ -90,8 +92,9 @@ export default function CreateScreen() {
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <EmptyState
           title="Rien à mettre en scène"
-          subtitle="Scanne une couleur pour créer une carte partageable."
+          subtitle="Scanne une couleur pour l'appliquer à un objet ou en faire une carte partageable."
         />
+        <PrimaryButton label="Scanner une couleur" onPress={() => router.push("/(tabs)/scan")} />
       </View>
     );
   }
@@ -104,9 +107,17 @@ export default function CreateScreen() {
       <View style={styles.header}>
         <Text style={[styles.title, { color: theme.text }]}>Créer</Text>
         <Text style={[styles.subtitle, { color: theme.subtext }]}>
-          Une couleur, un modèle, un format — puis partage.
+          Applique ta couleur à un objet, ou fais-en une carte à partager.
         </Text>
       </View>
+
+      {/* The object studio is the product's differentiating act, so it leads
+          here rather than sitting below the social-card export. */}
+      <PrimaryButton
+        label="Appliquer à un objet"
+        icon="cube-outline"
+        onPress={() => router.push({ pathname: "/objects", params: { hex } })}
+      />
 
       <ViewShot
         ref={shotRef}

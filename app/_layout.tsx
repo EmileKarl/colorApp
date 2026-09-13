@@ -58,6 +58,18 @@ export default function RootLayout() {
                 name="objects-check"
                 options={{ headerShown: true, title: "Vérification du rendu" }}
               />
+              <Stack.Screen
+                name="objects/index"
+                options={{ headerShown: true, title: "Objets" }}
+              />
+              <Stack.Screen name="objects/[id]" options={{ headerShown: true, title: "Modèle" }} />
+              {/* The Studio draws its own top bar (undo, redo, reset), so the
+                  navigator's header would be a second one stacked above it. */}
+              <Stack.Screen name="studio/[id]" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="studio/save"
+                options={{ presentation: "modal", headerShown: true, title: "Enregistrer" }}
+              />
             </Stack>
           </RecentColorsProvider>
         </AuthProvider>

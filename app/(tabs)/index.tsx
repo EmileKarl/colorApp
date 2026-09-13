@@ -74,6 +74,12 @@ export default function HomeScreen() {
           theme={theme}
         />
         <QuickAction
+          icon="cube-outline"
+          label="Studio"
+          onPress={() => router.push("/objects")}
+          theme={theme}
+        />
+        <QuickAction
           icon="color-filter-outline"
           label="Palettes"
           onPress={() => router.push("/library/palettes")}
@@ -97,10 +103,10 @@ export default function HomeScreen() {
                   key={entry.hex}
                   onPress={() => {
                     Haptics.selectionAsync();
-                    router.push({ pathname: "/compare", params: { a: entry.hex } });
+                    router.push({ pathname: "/objects", params: { hex: entry.hex } });
                   }}
                   accessibilityRole="button"
-                  accessibilityLabel={`Couleur ${entry.hex}`}
+                  accessibilityLabel={`Appliquer ${entry.hex} à un objet`}
                   style={[
                     styles.recentSwatch,
                     { backgroundColor: entry.hex, borderColor: theme.border },
