@@ -76,7 +76,7 @@ export default function ScanScreen() {
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <EmptyState
           title="Autorisation caméra requise"
-          subtitle="Color Code a besoin d'accéder à la caméra pour scanner une couleur. Tu peux aussi choisir une photo existante."
+          subtitle="ColorLens a besoin de la caméra pour capturer une couleur réelle. Tu peux aussi partir d'une photo existante."
         />
         <View style={styles.actions}>
           <PrimaryButton label="Autoriser la caméra" onPress={requestPermission} />

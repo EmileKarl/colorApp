@@ -1,7 +1,10 @@
-# Color Code
+# ColorLens
 
-Scanne une couleur réelle, obtiens son code (HEX/RGB/HSL), sauvegarde-la, partage-la et
-participe à la base de données communautaire de couleurs nommées et votées.
+**« Capture une couleur. Crée ton univers. »**
+
+Capture une couleur dans le monde réel, obtiens ses codes (HEX/RGB/HSL/HSV/LAB/CMYK), puis
+applique-la à des objets — t-shirts, sneakers, voitures — zone par zone, avec matériaux et
+éclairages. Enregistre, exporte, partage.
 
 Application mobile Android + iOS construite avec [Expo](https://expo.dev) (React Native +
 TypeScript) et [Supabase](https://supabase.com) (Postgres, Auth, Storage).

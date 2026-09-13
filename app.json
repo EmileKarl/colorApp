@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "Color Code",
-    "slug": "color-code",
+    "name": "ColorLens",
+    "slug": "colorlens",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "colorcode",
+    "scheme": "colorlens",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.colorcode.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Color Code utilise la caméra pour scanner la couleur d'un objet réel et en extraire le code (HEX/RGB/HSL).",
-        "NSPhotoLibraryUsageDescription": "Color Code peut extraire une couleur à partir d'une photo de votre galerie.",
-        "NSPhotoLibraryAddUsageDescription": "Color Code peut enregistrer les cartes de couleur partageables dans votre galerie."
+        "NSCameraUsageDescription": "ColorLens utilise la caméra pour capturer la couleur d'un objet réel et en extraire le code (HEX/RGB/HSL/LAB).",
+        "NSPhotoLibraryUsageDescription": "ColorLens peut extraire une couleur à partir d'une photo de votre galerie.",
+        "NSPhotoLibraryAddUsageDescription": "ColorLens peut enregistrer vos créations et vos cartes de couleur dans votre galerie."
       }
     },
     "android": {
@@ -40,13 +40,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Color Code utilise la caméra pour scanner la couleur d'un objet réel."
+          "cameraPermission": "ColorLens utilise la caméra pour capturer la couleur d'un objet réel."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Color Code peut extraire une couleur à partir d'une photo de votre galerie."
+          "photosPermission": "ColorLens peut extraire une couleur à partir d'une photo de votre galerie."
         }
       ],
       "expo-sharing",

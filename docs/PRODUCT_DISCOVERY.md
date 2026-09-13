@@ -1,4 +1,8 @@
-# Color Code — Product Discovery (Phase 0 & 1)
+# ColorLens — Product Discovery (Phase 0 & 1)
+
+> Document d'origine, écrit quand le produit s'appelait Color Code et se limitait à
+> la capture de couleur. Conservé pour l'historique des décisions ; le cahier des
+> charges en vigueur est `docs/COLORLENS_AUDIT.md` et `docs/COLORLENS_PLAN.md`.
 
 Statut : brouillon de décision, en attente de validation des points BLOQUANTS (voir section 8).
 Dépôt : `EmileKarl/colorapp` — branche de travail `claude/color-code-app-455juh`.

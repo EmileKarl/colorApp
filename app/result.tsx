@@ -224,7 +224,7 @@ export default function ResultScreen() {
           <ColorSwatch hex={hex} size={140} />
           <Text style={[styles.name, { color: theme.text }]}>{suggestedName}</Text>
           <Text style={[styles.hex, { color: theme.subtext }]}>{hex.toUpperCase()}</Text>
-          <Text style={[styles.brand, { color: theme.subtext }]}>Color Code</Text>
+          <Text style={[styles.brand, { color: theme.subtext }]}>ColorLens</Text>
         </View>
       </ViewShot>
 
