@@ -86,6 +86,12 @@ export default function HomeScreen() {
           theme={theme}
         />
         <QuickAction
+          icon="flask-outline"
+          label="Lab"
+          onPress={() => router.push("/lab")}
+          theme={theme}
+        />
+        <QuickAction
           icon="git-compare-outline"
           label="Comparer"
           onPress={() => router.push("/compare")}

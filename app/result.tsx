@@ -17,9 +17,17 @@ import { saveColor } from "../src/lib/colorApi";
 import { createColor, findExistingColor, proposeColorName } from "../src/lib/communityApi";
 import { analyzeImageColor } from "../src/lib/extractColor";
 import type { AnalyzeColorResult } from "../src/color-engine/pipeline/analyzeColor";
+import { rgbToHsv } from "../src/color-engine/color-spaces/hsv";
 import { FAMILY_LABEL_FR, getColorFamily, hexToRgb, nearestNamedColor, rgbToHsl } from "../src/lib/color";
 import { STARTER_COLOR_NAMES } from "../src/data/starterColorNames";
 import type { CommunityColorRow } from "../src/types/database";
+import {
+  BRIGHTNESS_LABEL_FR,
+  CMYK_CAVEAT,
+  SATURATION_LABEL_FR,
+  TEMPERATURE_LABEL_FR,
+  colorFacts,
+} from "../src/domain/colorFacts";
 import { spacing, useTheme } from "../src/theme";
 import { Field } from "../src/components/Field";
 import { Screen } from "../src/components/Screen";
@@ -206,6 +214,8 @@ export default function ResultScreen() {
   const hsl = rgbToHsl(rgb);
   const family = getColorFamily(rgb);
   const suggestedName = nearestNamedColor(hex, STARTER_COLOR_NAMES)?.name ?? "Couleur sans nom";
+  const facts = colorFacts(hex);
+  const hsv = rgbToHsv(rgb);
 
   return (
     <Screen contentStyle={styles.content}>
@@ -234,8 +244,28 @@ export default function ResultScreen() {
         <CodeRow label="HEX" value={hex.toUpperCase()} />
         <CodeRow label="RGB" value={`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`} />
         <CodeRow label="HSL" value={`hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`} />
+        <CodeRow
+          label="HSV"
+          value={`hsv(${Math.round(hsv.h)}, ${Math.round(hsv.s * 100)}%, ${Math.round(hsv.v * 100)}%)`}
+        />
+        {/* LCh, not HSV: hue angle, chroma and L* are the perceptual
+            coordinates the engine measures in, and mislabelling them as HSV
+            would mean a designer copying the wrong numbers. */}
+        <CodeRow
+          label="LCh"
+          value={`L* ${facts.lightness} · C* ${facts.chroma} · h ${facts.hue}°`}
+        />
+        <CodeRow
+          label="CMYK"
+          value={`${facts.cmyk.c} / ${facts.cmyk.m} / ${facts.cmyk.y} / ${facts.cmyk.k}`}
+        />
         <CodeRow label="Famille" value={FAMILY_LABEL_FR[family]} />
+        <CodeRow label="Température" value={TEMPERATURE_LABEL_FR[facts.temperature]} />
+        <CodeRow label="Luminosité" value={BRIGHTNESS_LABEL_FR[facts.brightness]} />
+        <CodeRow label="Saturation" value={SATURATION_LABEL_FR[facts.saturation]} />
       </View>
+
+      <Text style={[styles.disclaimer, { color: theme.subtext }]}>{CMYK_CAVEAT}</Text>
 
       {analysis ? <ConfidencePanel analysis={analysis} /> : null}
 

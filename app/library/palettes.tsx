@@ -16,13 +16,17 @@ import {
   generatePalette,
   type PaletteStyle,
 } from "../../src/domain/palette";
-import { spacing, useTheme } from "../../src/theme";
+import { MOOD_LABEL_FR, USE_LABEL_FR, paletteMoods, suggestedUses } from "../../src/domain/paletteMood";
+import { buildColorStory } from "../../src/domain/colorStory";
+import { useRouter } from "expo-router";
+import { spacing, type, useTheme } from "../../src/theme";
 
 /** Shown until the user has scanned anything, so the screen is never empty. */
 const FALLBACK_BASE = "#c47a52";
 
 export default function PalettesScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { colors: recent } = useRecentColors();
 
   const [baseHex, setBaseHex] = useState<string | null>(null);
@@ -36,6 +40,15 @@ export default function PalettesScreen() {
     () => generatePalette(hexToRgb(activeBase), style, size),
     [activeBase, style, size],
   );
+
+  const hexes = useMemo(() => palette.swatches.map((swatch) => swatch.hex), [palette]);
+
+  // The aesthetic reading and the suggested uses of page 7. Both are scored
+  // from the palette's own measurements, never invented — see
+  // src/domain/paletteMood.ts for why that distinction matters.
+  const moods = useMemo(() => paletteMoods(hexes), [hexes]);
+  const uses = useMemo(() => suggestedUses(hexes), [hexes]);
+  const story = useMemo(() => buildColorStory(hexes), [hexes]);
 
   const onCopy = async () => {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -159,6 +172,63 @@ export default function PalettesScreen() {
         </Text>
       )}
 
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>Interprétation</Text>
+      <View style={styles.chipWrap}>
+        {/* Read-only badges, not chips: these are a reading of the palette,
+            not a control. §13 forbids anything that looks pressable but is not. */}
+        {moods.slice(0, 3).map((entry, index) => (
+          <View
+            key={entry.mood}
+            style={[
+              styles.badge,
+              {
+                backgroundColor: index === 0 ? theme.accent : theme.surface,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text
+              style={[type.label, { color: index === 0 ? theme.onAccent : theme.subtext }]}
+            >
+              {MOOD_LABEL_FR[entry.mood]}
+            </Text>
+          </View>
+        ))}
+      </View>
+      {moods[0] ? (
+        <Text style={[styles.hint, { color: theme.subtext }]}>
+          {moods[0].reason} Cette lecture vient des mesures de la palette, pas d’une
+          impression : tu peux ne pas être d’accord avec le raisonnement.
+        </Text>
+      ) : null}
+
+      {uses.length > 0 ? (
+        <>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Usages suggérés</Text>
+          {uses.map((entry) => (
+            <Text key={entry.use} style={[styles.metric, { color: theme.subtext }]}>
+              • <Text style={{ color: theme.text }}>{USE_LABEL_FR[entry.use]}</Text> — {entry.reason}
+            </Text>
+          ))}
+        </>
+      ) : null}
+
+      {story ? (
+        <>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Color Story</Text>
+          <Text style={[type.body, { color: theme.subtext }]}>{story.description}</Text>
+          <Text style={[styles.metric, { color: theme.subtext }]}>
+            Matériaux adaptés : {story.materials.join(", ")}
+          </Text>
+        </>
+      ) : null}
+
+      <PrimaryButton
+        label="Appliquer cette palette à un objet"
+        icon="cube-outline"
+        onPress={() => router.push({ pathname: "/objects", params: { hex: activeBase } })}
+      />
+
       <PrimaryButton
         label={copied ? "Copiée ✓" : "Copier la palette"}
         onPress={onCopy}
@@ -222,6 +292,13 @@ function Chip({
 }
 
 const styles = StyleSheet.create({
+  chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  badge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
   header: { gap: 4 },
   title: { fontSize: 26, fontWeight: "700" },
