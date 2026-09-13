@@ -16,30 +16,44 @@ fait pas** et pourquoi.
 
 ## Statut actuel
 
-- ✅ Scan caméra / import galerie → extraction de couleur → HEX/RGB/HSL/famille
-- ✅ Sauvegarde personnelle (collection privée, par compte)
-- ✅ Détection de couleur déjà connue de la communauté (dédoublonnage par proximité de couleur)
-- ✅ Proposition de nom de couleur → file de modération → vote communautaire → classement
-- ✅ Interface de modération (approuver/rejeter une proposition), réservée aux comptes
-  modérateur/admin
-- ✅ Carte partageable (image) générée depuis l'écran résultat
-- ✅ Palette de couleurs harmonieuses (complémentaire + analogues), filtres par famille dans le
-  classement communautaire
-- ✅ Authentification par courriel, suppression de compte (droit à l'effacement)
-- ✅ Retour haptique, icônes de navigation, contrôles caméra (lampe, bascule avant/arrière)
-- ✅ Moteur de couleur scientifique (`src/color-engine/`) — voir `docs/COLOR_ENGINE.md`
-- ✅ Moteur d'harmonies (15 schémas), générateur de palettes (10 styles × 3/5/8/12 couleurs)
-- ✅ Photo → palette avec proportions réelles mesurées, et rôles (dominante, accent…)
-- ✅ Accessibilité : contraste WCAG AA/AAA, simulation du daltonisme, détection des paires
-  de couleurs qui se confondent
-- ✅ Comparaison de couleurs (ΔE2000 décomposé en luminosité / saturation / teinte)
-- ✅ Accueil avec couleur du jour, Tap-to-Color (analyser n'importe quelle zone d'une photo)
-- ✅ Color Lab avec 3 niveaux de détail (Simple / Avancé / Expert)
-- ✅ Create Studio : 4 modèles × 5 formats sociaux, export PNG et partage natif
-- ✅ Recherche par famille, qualificatif ou code hexadécimal (proximité perceptuelle)
+**Le parcours ColorLens complet fonctionne** : capture → analyse → palette → objet → Studio →
+personnalisation → variantes → sauvegarde → export.
+
+### Capture et couleur
+- ✅ Scan caméra / import galerie → HEX, RGB, HSL, HSV, LAB, LCh, CMYK approximatif
+- ✅ Tap-to-Color : analyser n'importe quelle zone d'une photo
+- ✅ Température, luminosité, saturation en langage clair
+- ✅ Moteur colorimétrique scientifique avec score de confiance honnête
+  (`docs/COLOR_ENGINE.md`)
+
+### Studio objet — la fonction différenciante
+- ✅ Bibliothèque d'objets (t-shirt, sneaker, voiture), recherche, favoris, récents
+- ✅ Color Studio : couleur par zone, matériaux, éclairages, réglages de rendu
+- ✅ 12 matériaux, 7 éclairages, recoloration qui préserve ombres et volumes
+  (`docs/OBJECT_STUDIO.md`)
+- ✅ 10 variantes automatiques + 7 ajustements cumulables, tous déterministes
+- ✅ Comparateur avant/après, annuler/rétablir, réinitialiser
+
+### Palettes et création
+- ✅ 15 schémas d'harmonie, 10 styles de palette, photo → palette avec proportions réelles
+- ✅ Interprétation esthétique et usages suggérés, **dérivés des mesures**
+- ✅ Color Lab : mélange en CIELAB, déclinaisons, « Surprise me »
+- ✅ Color Story déterministe
+- ✅ Export PNG/JPG, HEX/RGB/HSL, JSON, CSS, variables de design, SVG
+
+### Bibliothèque et social
+- ✅ Couleurs, palettes, créations, collections nommées
+- ✅ Explorer : thèmes composés, créations publiques, noms votés par la communauté
+- ✅ Remix d'une création publique, avec lien vers l'originale
+- ✅ Profil avec statistiques réelles, paramètres complets
+
+### Accessibilité et honnêteté
+- ✅ Contraste WCAG AA/AAA, simulation du daltonisme, alertes sur les palettes qui se confondent
+- ✅ Les statistiques ne sont jamais estimées ; les tendances ne sont pas fabriquées
 - ❌ Live Color temps réel : **impossible dans Expo Go** — voir `docs/LIMITATIONS.md`
-- ⏳ Feed social, profils publics, gamification : prévus en MVP4 (non commencés)
-- ⏳ Paiements / fonctionnalités premium : prévus en MVP5 (non commencés)
+- ❌ WebP : le module de capture d'Expo Go n'encode qu'en PNG et JPG
+- ⏳ Mockups photographiques : le moteur les accepte, les images restent à fournir
+- ⏳ 3D : architecture préparée, non implémentée (§14 la place hors MVP)
 
 ## Démarrage
 

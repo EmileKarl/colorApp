@@ -6,9 +6,9 @@ import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { EmptyState } from "../../src/components/EmptyState";
+import { Screen } from "../../src/components/Screen";
+import { StateView } from "../../src/components/StateView";
 import { ErrorBanner } from "../../src/components/ErrorBanner";
-import { PrimaryButton } from "../../src/components/PrimaryButton";
 import { spacing, useTheme } from "../../src/theme";
 
 export default function ScanScreen() {
@@ -68,25 +68,24 @@ export default function ScanScreen() {
   };
 
   if (!permission) {
-    return <EmptyState title="Chargement des permissions…" />;
+    return (
+      <Screen center>
+        <StateView kind="loading" message="Vérification des autorisations…" />
+      </Screen>
+    );
   }
 
   if (!permission.granted) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <EmptyState
-          title="Autorisation caméra requise"
-          subtitle="ColorLens a besoin de la caméra pour capturer une couleur réelle. Tu peux aussi partir d'une photo existante."
+      <Screen center>
+        <StateView
+          kind="camera_denied"
+          onRetry={requestPermission}
+          retryLabel="Autoriser la caméra"
+          onAlternative={onPickFromGallery}
+          alternativeLabel="Choisir une photo"
         />
-        <View style={styles.actions}>
-          <PrimaryButton label="Autoriser la caméra" onPress={requestPermission} />
-          <PrimaryButton
-            label="Choisir une photo"
-            onPress={onPickFromGallery}
-            variant="secondary"
-          />
-        </View>
-      </View>
+      </Screen>
     );
   }
 

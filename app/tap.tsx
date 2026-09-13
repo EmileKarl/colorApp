@@ -2,7 +2,6 @@ import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Pressable,
   StyleSheet,
@@ -12,6 +11,8 @@ import {
 } from "react-native";
 
 import { ErrorBanner } from "../src/components/ErrorBanner";
+import { Screen } from "../src/components/Screen";
+import { StateView } from "../src/components/StateView";
 import { PrimaryButton } from "../src/components/PrimaryButton";
 import { useRecentColors } from "../src/context/RecentColorsContext";
 import { readableTextColor } from "../src/domain/contrast";
@@ -88,19 +89,22 @@ export default function TapScreen() {
 
   if (status === "loading") {
     return (
-      <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={theme.accent} />
-        <Text style={{ color: theme.subtext }}>Préparation de l&apos;image…</Text>
-      </View>
+      <Screen center>
+        <StateView kind="loading" message="Préparation de l’image…" />
+      </Screen>
     );
   }
 
   if (status === "error") {
     return (
-      <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <ErrorBanner message={error ?? "Une erreur est survenue."} />
-        <PrimaryButton label="Retour" onPress={() => router.back()} variant="secondary" />
-      </View>
+      <Screen center>
+        <StateView
+          kind="invalid_image"
+          message={error ?? undefined}
+          onRetry={() => router.back()}
+          retryLabel="Choisir une autre image"
+        />
+      </Screen>
     );
   }
 

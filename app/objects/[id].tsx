@@ -98,7 +98,9 @@ export default function ObjectDetailScreen() {
       </Card>
 
       <View style={styles.header}>
-        <Text style={[type.title, { color: theme.text }]}>{model.name}</Text>
+        <Text style={[type.title, { color: theme.text }]} numberOfLines={2}>
+          {model.name}
+        </Text>
         <View style={styles.metaRow}>
           <Chip
             label={CATEGORY_LABEL_FR[model.category]}

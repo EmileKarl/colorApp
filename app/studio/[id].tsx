@@ -4,10 +4,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import ViewShot, { type ViewShotRef } from "react-native-view-shot";
+import ViewShot, { captureRef, type ViewShotRef } from "react-native-view-shot";
 
 import { Chip, ChipRow } from "../../src/components/Chip";
-import { ErrorBanner } from "../../src/components/ErrorBanner";
+import { ExportSheet } from "../../src/components/ExportSheet";
 import { Field } from "../../src/components/Field";
 import { PrimaryButton } from "../../src/components/PrimaryButton";
 import { Sheet } from "../../src/components/Sheet";
@@ -33,6 +33,7 @@ import {
   applyPalette,
   createProject,
   parseProject,
+  projectPalette,
   resetProject,
   setZone,
 } from "../../src/objects/project";
@@ -71,9 +72,9 @@ export default function StudioScreen() {
   const [status, setStatus] = useState<"loading" | "ready" | "missing">("loading");
   const [panel, setPanel] = useState<Panel>("color");
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [hexDraft, setHexDraft] = useState("");
   const [showLighting, setShowLighting] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [comparing, setComparing] = useState(false);
   /**
    * The state the Studio opened with, kept for the before/after comparison
@@ -178,16 +179,17 @@ export default function StudioScreen() {
     edit((current) => setZone(current, selectedZone, { color: normalizeHex(color) }));
   };
 
-  const onExport = async () => {
-    setError(null);
-    try {
-      const uri = await shotRef.current?.capture();
-      if (!uri) return;
-      const Sharing = await import("expo-sharing");
-      if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
-    } catch {
-      setError("L’export a échoué sur cet appareil.");
-    }
+  /**
+   * The sheet asks for a format and calls back; capturing here keeps the ref
+   * where the view lives.
+   *
+   * `captureRef` rather than `ref.capture()`: only the former takes options,
+   * and the format has to be chosen at capture time rather than baked into the
+   * component's props.
+   */
+  const captureImage = async (format: "png" | "jpg") => {
+    if (!shotRef.current) return undefined;
+    return captureRef(shotRef, { format, quality: format === "jpg" ? 0.92 : 1 });
   };
 
   return (
@@ -245,8 +247,6 @@ export default function StudioScreen() {
             />
           </ViewShot>
         )}
-
-        {error ? <ErrorBanner message={error} /> : null}
 
         {/* Panel switch. Labelled, not icon-only: §5 forbids conveying
             information by one channel alone. */}
@@ -511,7 +511,12 @@ export default function StudioScreen() {
         ]}
       >
         <View style={styles.footerButton}>
-          <PrimaryButton label="Exporter" icon="share-outline" variant="secondary" onPress={onExport} />
+          <PrimaryButton
+            label="Exporter"
+            icon="share-outline"
+            variant="secondary"
+            onPress={() => setShowExport(true)}
+          />
         </View>
         <View style={styles.footerButton}>
           <PrimaryButton
@@ -526,6 +531,16 @@ export default function StudioScreen() {
           />
         </View>
       </View>
+
+      <ExportSheet
+        visible={showExport}
+        onClose={() => setShowExport(false)}
+        palette={{
+          name: model.name,
+          colors: projectPalette(project, model).map((hex) => ({ hex })),
+        }}
+        onCaptureImage={captureImage}
+      />
 
       <Sheet
         visible={showLighting}

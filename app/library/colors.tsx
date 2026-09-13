@@ -1,6 +1,16 @@
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { ErrorBanner } from "../../src/components/ErrorBanner";
 import { Field } from "../../src/components/Field";
@@ -85,7 +95,13 @@ export default function ColorLibraryScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    // This screen owns a FlatList rather than Screen's ScrollView, so it
+    // carries its own keyboard handling — §13 forbids the keyboard covering
+    // the search field.
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       {error ? <ErrorBanner message={error} /> : null}
 
       <View style={{ paddingHorizontal: gutter, paddingTop: spacing.md }}>
@@ -136,7 +152,7 @@ export default function ColorLibraryScreen() {
           </Pressable>
         )}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

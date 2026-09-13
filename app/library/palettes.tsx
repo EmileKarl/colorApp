@@ -19,6 +19,7 @@ import {
 import { MOOD_LABEL_FR, USE_LABEL_FR, paletteMoods, suggestedUses } from "../../src/domain/paletteMood";
 import { buildColorStory } from "../../src/domain/colorStory";
 import { useRouter } from "expo-router";
+import { ExportSheet } from "../../src/components/ExportSheet";
 import { spacing, type, useTheme } from "../../src/theme";
 
 /** Shown until the user has scanned anything, so the screen is never empty. */
@@ -33,6 +34,7 @@ export default function PalettesScreen() {
   const [style, setStyle] = useState<PaletteStyle>("modern");
   const [size, setSize] = useState<(typeof PALETTE_SIZES)[number]>(5);
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const activeBase = baseHex ?? recent[0]?.hex ?? FALLBACK_BASE;
 
@@ -230,9 +232,28 @@ export default function PalettesScreen() {
       />
 
       <PrimaryButton
+        label="Exporter"
+        icon="share-outline"
+        variant="secondary"
+        onPress={() => setExporting(true)}
+      />
+
+      <PrimaryButton
         label={copied ? "Copiée ✓" : "Copier la palette"}
         onPress={onCopy}
         variant="secondary"
+      />
+
+      <ExportSheet
+        visible={exporting}
+        onClose={() => setExporting(false)}
+        palette={{
+          name: `${PALETTE_STYLE_LABELS[style]} ${size}`,
+          colors: palette.swatches.map((swatch, index) => ({
+            hex: swatch.hex,
+            role: index === 0 ? "dominant" : index === palette.swatches.length - 1 ? "accent" : null,
+          })),
+        }}
       />
 
       {recent.length === 0 ? (

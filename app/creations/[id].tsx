@@ -157,7 +157,9 @@ export default function PublicCreationScreen() {
       </Card>
 
       <View style={styles.header}>
-        <Text style={[type.title, { color: theme.text }]}>{creation.name}</Text>
+        <Text style={[type.title, { color: theme.text }]} numberOfLines={2}>
+          {creation.name}
+        </Text>
         <View style={styles.metaRow}>
           <Chip
             label={`${likes} j’aime`}
