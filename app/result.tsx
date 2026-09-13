@@ -11,6 +11,7 @@ import { ErrorBanner } from "../src/components/ErrorBanner";
 import { HarmonyPalette } from "../src/components/HarmonyPalette";
 import { PrimaryButton } from "../src/components/PrimaryButton";
 import { useAuth } from "../src/context/AuthContext";
+import { useRecentColors } from "../src/context/RecentColorsContext";
 import { saveColorToCollection } from "../src/lib/collectionApi";
 import { createColor, findExistingColor, proposeColorName } from "../src/lib/communityApi";
 import { analyzeImageColor } from "../src/lib/extractColor";
@@ -24,6 +25,7 @@ export default function ResultScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { user } = useAuth();
+  const { add: addRecentColor } = useRecentColors();
   const { uri } = useLocalSearchParams<{ uri: string }>();
   const shotRef = useRef<ViewShotRef>(null);
 
@@ -56,6 +58,13 @@ export default function ResultScreen() {
         const extracted = measurement.dominantColor.hex;
         setHex(extracted);
         setAnalysis(measurement);
+        // Record locally so palettes, compare and history work offline and
+        // without an account — the cloud collection stays a separate opt-in.
+        addRecentColor({
+          hex: extracted,
+          scannedAt: new Date().toISOString(),
+          confidence: measurement.confidence,
+        });
         setStatus("ready");
 
         try {
@@ -76,7 +85,9 @@ export default function ResultScreen() {
     return () => {
       cancelled = true;
     };
-  }, [uri]);
+    // addRecentColor is stable (memoized in the provider), so listing it here
+    // does not re-trigger the analysis.
+  }, [uri, addRecentColor]);
 
   const onSave = useCallback(async () => {
     if (!hex) return;
@@ -269,6 +280,11 @@ export default function ResultScreen() {
           disabled={saved}
         />
         <PrimaryButton label="Partager la carte" onPress={onShare} variant="secondary" />
+        <PrimaryButton
+          label="Comparer avec une autre couleur"
+          onPress={() => router.push({ pathname: "/compare", params: { a: hex } })}
+          variant="secondary"
+        />
       </View>
     </ScrollView>
   );

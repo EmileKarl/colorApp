@@ -22,6 +22,13 @@ justification des choix techniques et l'estimation des coûts.
   classement communautaire
 - ✅ Authentification par courriel, suppression de compte (droit à l'effacement)
 - ✅ Retour haptique, icônes de navigation, contrôles caméra (lampe, bascule avant/arrière)
+- ✅ Moteur de couleur scientifique (`src/color-engine/`) — voir `docs/COLOR_ENGINE.md`
+- ✅ Moteur d'harmonies (15 schémas), générateur de palettes (10 styles × 3/5/8/12 couleurs)
+- ✅ Photo → palette avec proportions réelles mesurées, et rôles (dominante, accent…)
+- ✅ Accessibilité : contraste WCAG AA/AAA, simulation du daltonisme, détection des paires
+  de couleurs qui se confondent
+- ✅ Comparaison de couleurs (ΔE2000 décomposé en luminosité / saturation / teinte)
+- ⏳ Écrans HOME et CREATE, Live Color temps réel, templates sociaux : non commencés
 - ⏳ Feed social, profils publics, gamification : prévus en MVP4 (non commencés)
 - ⏳ Paiements / fonctionnalités premium : prévus en MVP5 (non commencés)
 

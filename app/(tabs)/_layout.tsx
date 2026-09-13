@@ -32,6 +32,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="palettes"
+        options={{
+          title: "Palettes",
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? "color-filter" : "color-filter-outline"} color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="collection"
         options={{
           title: "Collection",

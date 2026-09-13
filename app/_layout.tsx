@@ -4,11 +4,13 @@ import React from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AuthProvider } from "../src/context/AuthContext";
+import { RecentColorsProvider } from "../src/context/RecentColorsContext";
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
+        <RecentColorsProvider>
         <StatusBar style="auto" />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
@@ -28,7 +30,12 @@ export default function RootLayout() {
             name="moderation"
             options={{ presentation: "modal", headerShown: true, title: "Modération" }}
           />
+          <Stack.Screen
+            name="compare"
+            options={{ presentation: "modal", headerShown: true, title: "Comparer" }}
+          />
         </Stack>
+        </RecentColorsProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
