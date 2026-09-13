@@ -77,10 +77,17 @@ Applique le schéma de base de données : voir `supabase/README.md`.
 ### Lancer l'app en développement
 
 ```bash
-npm start
+npx expo start -c
 ```
 
-Scanne le QR code avec Expo Go, ou appuie sur `a`/`i` pour lancer un émulateur Android/iOS.
+Scanne le QR code avec Expo Go sur ton téléphone, ou appuie sur `a` pour un émulateur
+Android.
+
+**Guide détaillé : `docs/TESTER.md`** — émulateur Android Studio, iPhone via Expo Go,
+résolution des problèmes courants, et ce qu'il faut vérifier en priorité.
+
+> Note : il n'y a pas de dossier `android/` ni `ios/`. C'est un projet Expo *managed* :
+> Android Studio sert uniquement à fournir l'émulateur, on n'y ouvre pas le projet.
 
 ### Qualité
 
