@@ -77,6 +77,12 @@ export default function ProfileScreen() {
           subtitle="Tes couleurs et tes palettes enregistrées"
         />
         <PrimaryButton
+          label="Mes créations"
+          icon="cube-outline"
+          onPress={() => router.push("/library/creations")}
+          variant="secondary"
+        />
+        <PrimaryButton
           label="Mes couleurs"
           icon="color-palette-outline"
           onPress={() => router.push("/library/colors")}

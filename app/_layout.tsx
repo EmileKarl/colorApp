@@ -55,6 +55,10 @@ export default function RootLayout() {
                 options={{ headerShown: true, title: "Mes couleurs" }}
               />
               <Stack.Screen
+                name="library/creations"
+                options={{ headerShown: true, title: "Mes créations" }}
+              />
+              <Stack.Screen
                 name="objects-check"
                 options={{ headerShown: true, title: "Vérification du rendu" }}
               />

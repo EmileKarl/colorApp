@@ -64,6 +64,28 @@ export function shiftLightnessChroma(hex: string, dL: number, dC: number): strin
   );
 }
 
+/**
+ * Converts an LCh color to sRGB, reducing chroma if needed to stay in gamut.
+ *
+ * The one entry point for "I have a lightness, a chroma and a hue, give me a
+ * color". Exported so that variants and adjustments go through the same gamut
+ * handling as the renderer instead of re-deriving it.
+ */
+export function lchToHex(lch: { L: number; C: number; h: number }): string {
+  return rgbToHex(
+    gamutMap({
+      L: Math.min(100, Math.max(0, lch.L)),
+      C: Math.max(0, lch.C),
+      h: ((lch.h % 360) + 360) % 360,
+    }),
+  );
+}
+
+/** The LCh coordinates of a hex color. */
+export function hexToLch(hex: string): { L: number; C: number; h: number } {
+  return labToLch(rgbToLab(hexToRgb(hex)));
+}
+
 /** True when an LCh color has an exact sRGB representation. */
 function inGamut(lch: { L: number; C: number; h: number }): boolean {
   const linear = xyzToLinearRgb(labToXyz(lchToLab(lch)));

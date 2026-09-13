@@ -14,15 +14,25 @@ import { Sheet } from "../../src/components/Sheet";
 import { Slider } from "../../src/components/Slider";
 import { StateView } from "../../src/components/StateView";
 import { useRecentColors } from "../../src/context/RecentColorsContext";
+import { BeforeAfter } from "../../src/components/BeforeAfter";
 import { ALL_LIGHTINGS, MATERIALS } from "../../src/domain/materials";
+import {
+  ADJUSTMENTS,
+  VARIANTS,
+  applyAdjustment,
+  applyVariant,
+  sourceColorOf,
+} from "../../src/domain/variants";
 import { generatePalette } from "../../src/domain/palette";
 import { useUndoable } from "../../src/hooks/useUndoable";
 import { hexToRgb, isValidHex, normalizeHex } from "../../src/lib/color";
+import { getCreation } from "../../src/lib/creationApi";
 import { loadObject } from "../../src/lib/objectApi";
 import {
   applyColor,
   applyPalette,
   createProject,
+  parseProject,
   resetProject,
   setZone,
 } from "../../src/objects/project";
@@ -30,7 +40,7 @@ import { ObjectCanvas } from "../../src/objects/renderer/ObjectCanvas";
 import type { LightingId, MaterialId, ObjectModel, ProjectData } from "../../src/objects/types";
 import { monoFontFamily, radius, spacing, type, useLayout, useTheme } from "../../src/theme";
 
-type Panel = "color" | "zone" | "material" | "render";
+type Panel = "color" | "variant" | "zone" | "material" | "render";
 
 /**
  * Color Studio — ColorLens pages 11, 12 and 13.
@@ -49,7 +59,11 @@ export default function StudioScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width, gutter } = useLayout();
-  const { id, hex } = useLocalSearchParams<{ id: string; hex?: string }>();
+  const { id, hex, creation: creationId } = useLocalSearchParams<{
+    id: string;
+    hex?: string;
+    creation?: string;
+  }>();
   const { colors: recentColors } = useRecentColors();
   const shotRef = useRef<ViewShotRef>(null);
 
@@ -60,35 +74,64 @@ export default function StudioScreen() {
   const [error, setError] = useState<string | null>(null);
   const [hexDraft, setHexDraft] = useState("");
   const [showLighting, setShowLighting] = useState(false);
+  const [comparing, setComparing] = useState(false);
+  /**
+   * The state the Studio opened with, kept for the before/after comparison
+   * (page 17). It is the baseline the user is actually asking about — "what
+   * did this look like before I started" — rather than the immediately
+   * previous edit, which is what undo already covers.
+   */
+  const [baseline, setBaseline] = useState<ProjectData | null>(null);
 
   const history = useUndoable<ProjectData | null>(null);
   const project = history.state;
 
   useEffect(() => {
     let cancelled = false;
-    loadObject(id)
-      .then((result) => {
-        if (cancelled) return;
-        if (!result) {
-          setStatus("missing");
-          return;
+
+    async function open() {
+      const result = await loadObject(id);
+      if (cancelled) return;
+      if (!result) {
+        setStatus("missing");
+        return;
+      }
+
+      let opening = createProject(result);
+      if (creationId) {
+        // Reopening a saved creation. A stored project that cannot be parsed
+        // falls back to a fresh one rather than failing the whole screen —
+        // the user keeps the object, and loses only the old edits.
+        try {
+          const creation = await getCreation(creationId);
+          const restored = creation ? parseProject(creation.project_data, result) : null;
+          if (restored) opening = restored;
+        } catch {
+          // Offline, or the row is gone. A fresh project is still usable.
         }
-        const base = createProject(result);
-        history.reset(hex && isValidHex(hex) ? applyColor(base, result, hex) : base);
-        setModel(result);
-        setSelectedZone(result.zones.find((zone) => zone.role === "body")?.id ?? result.zones[0].id);
-        setStatus("ready");
-      })
-      .catch(() => {
-        if (!cancelled) setStatus("missing");
-      });
+      } else if (hex && isValidHex(hex)) {
+        opening = applyColor(opening, result, hex);
+      }
+
+      if (cancelled) return;
+      history.reset(opening);
+      setBaseline(opening);
+      setModel(result);
+      setSelectedZone(result.zones.find((zone) => zone.role === "body")?.id ?? result.zones[0].id);
+      setStatus("ready");
+    }
+
+    open().catch(() => {
+      if (!cancelled) setStatus("missing");
+    });
+
     return () => {
       cancelled = true;
     };
     // `history.reset` is stable; re-running on it would reload the model and
     // discard the user's edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, hex]);
+  }, [id, hex, creationId]);
 
   const edit = useCallback(
     (update: (current: ProjectData) => ProjectData, coalesce?: string) => {
@@ -168,6 +211,11 @@ export default function StudioScreen() {
           disabled={!history.canRedo}
         />
         <IconButton
+          icon={comparing ? "contract-outline" : "git-compare-outline"}
+          label={comparing ? "Quitter la comparaison" : "Comparer avant/après"}
+          onPress={() => setComparing((previous) => !previous)}
+        />
+        <IconButton
           icon="refresh-outline"
           label="Réinitialiser"
           onPress={() => edit((current) => resetProject(current, model))}
@@ -175,15 +223,28 @@ export default function StudioScreen() {
       </View>
 
       <ScrollView contentContainerStyle={[styles.body, { paddingHorizontal: gutter }]}>
-        <ViewShot ref={shotRef} options={{ format: "png", quality: 1 }}>
-          <ObjectCanvas
-            model={model}
-            project={project}
+        {comparing && baseline ? (
+          <BeforeAfter
             width={canvasWidth}
             height={canvasHeight}
-            emphasizeZone={panel === "zone" ? (selectedZone ?? undefined) : undefined}
+            before={
+              <ObjectCanvas model={model} project={baseline} width={canvasWidth} height={canvasHeight} />
+            }
+            after={
+              <ObjectCanvas model={model} project={project} width={canvasWidth} height={canvasHeight} />
+            }
           />
-        </ViewShot>
+        ) : (
+          <ViewShot ref={shotRef} options={{ format: "png", quality: 1 }}>
+            <ObjectCanvas
+              model={model}
+              project={project}
+              width={canvasWidth}
+              height={canvasHeight}
+              emphasizeZone={panel === "zone" ? (selectedZone ?? undefined) : undefined}
+            />
+          </ViewShot>
+        )}
 
         {error ? <ErrorBanner message={error} /> : null}
 
@@ -193,6 +254,7 @@ export default function StudioScreen() {
           {(
             [
               ["color", "Couleur"],
+              ["variant", "Variantes"],
               ["zone", "Zones"],
               ["material", "Matériau"],
               ["render", "Rendu"],
@@ -276,6 +338,51 @@ export default function StudioScreen() {
                 if (isValidHex(hexDraft)) applyToZone(hexDraft);
               }}
             />
+          </View>
+        ) : null}
+
+        {panel === "variant" ? (
+          <View style={styles.panel}>
+            <Text style={[type.caption, { color: theme.subtext }]}>
+              Chaque variante recolore les zones existantes à partir de ta couleur. La forme,
+              les volumes et les matériaux ne changent jamais.
+            </Text>
+            <View style={styles.wrap}>
+              {VARIANTS.map((entry) => (
+                <Chip
+                  key={entry.id}
+                  label={entry.label}
+                  selected={project.variant === entry.id}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    edit((current) =>
+                      applyVariant(current, model, entry, sourceColorOf(current, model)),
+                    );
+                  }}
+                />
+              ))}
+            </View>
+            <Text style={[type.caption, { color: theme.subtext }]}>
+              {VARIANTS.find((entry) => entry.id === project.variant)?.description ??
+                "Choisis une variante, ou ajuste ce que tu as déjà."}
+            </Text>
+
+            <Text style={[type.label, { color: theme.text }]}>Ajuster</Text>
+            <View style={styles.wrap}>
+              {ADJUSTMENTS.map((entry) => (
+                <Chip
+                  key={entry.id}
+                  label={entry.label}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    edit((current) => applyAdjustment(current, model, entry));
+                  }}
+                />
+              ))}
+            </View>
+            <Text style={[type.caption, { color: theme.subtext }]}>
+              Les ajustements se cumulent : appuie deux fois pour aller deux fois plus loin.
+            </Text>
           </View>
         ) : null}
 
