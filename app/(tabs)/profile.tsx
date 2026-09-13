@@ -91,6 +91,19 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.section}>
+        <SectionHeader
+          title="Rendu des objets"
+          subtitle="À vérifier une fois sur ton téléphone avant de construire le Studio dessus"
+        />
+        <PrimaryButton
+          label="Vérifier le rendu"
+          icon="cube-outline"
+          onPress={() => router.push("/objects-check")}
+          variant="secondary"
+        />
+      </View>
+
+      <View style={styles.section}>
         <SectionHeader title="Compte" />
         {isModerator ? (
           <PrimaryButton
