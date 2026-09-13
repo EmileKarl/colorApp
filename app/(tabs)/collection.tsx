@@ -1,11 +1,21 @@
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 import { EmptyState } from "../../src/components/EmptyState";
 import { ErrorBanner } from "../../src/components/ErrorBanner";
 import { PrimaryButton } from "../../src/components/PrimaryButton";
 import { useAuth } from "../../src/context/AuthContext";
+import { searchColors } from "../../src/domain/search";
 import { deleteSavedColor, listSavedColors } from "../../src/lib/collectionApi";
 import type { SavedColorRow } from "../../src/types/database";
 import { spacing, useTheme } from "../../src/theme";
@@ -17,6 +27,19 @@ export default function CollectionScreen() {
   const [items, setItems] = useState<SavedColorRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  // Search runs over the already-loaded list rather than hitting the network:
+  // the collection is small, and filtering locally keeps typing instant.
+  const visibleItems = useMemo(() => {
+    if (query.trim().length === 0) return items;
+    const matches = searchColors(
+      query,
+      items.map((item) => ({ hex: item.hex, label: item.label ?? undefined, id: item.id })),
+    );
+    const matchedIds = new Set(matches.map((match) => match.item.id));
+    return items.filter((item) => matchedIds.has(item.id));
+  }, [items, query]);
 
   const load = useCallback(async () => {
     if (!user) {
@@ -73,16 +96,32 @@ export default function CollectionScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {error ? <ErrorBanner message={error} /> : null}
+
+      <TextInput
+        placeholder="Rechercher : bleu foncé, neutre, #0047AB…"
+        placeholderTextColor={theme.subtext}
+        value={query}
+        onChangeText={setQuery}
+        autoCapitalize="none"
+        autoCorrect={false}
+        accessibilityLabel="Rechercher dans la collection"
+        style={[styles.search, { color: theme.text, borderColor: theme.border }]}
+      />
+
       <FlatList
-        data={items}
+        data={visibleItems}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-        contentContainerStyle={items.length === 0 ? styles.emptyContainer : styles.list}
+        contentContainerStyle={visibleItems.length === 0 ? styles.emptyContainer : styles.list}
         ListEmptyComponent={
           !loading ? (
             <EmptyState
-              title="Aucune couleur sauvegardée"
-              subtitle="Scanne une couleur puis appuie sur « Sauvegarder » pour la retrouver ici."
+              title={query ? "Aucun résultat" : "Aucune couleur sauvegardée"}
+              subtitle={
+                query
+                  ? "Essaie une famille de couleur, un qualificatif comme « clair », ou un code hexadécimal."
+                  : "Scanne une couleur puis appuie sur « Sauvegarder » pour la retrouver ici."
+              }
             />
           ) : null
         }
@@ -108,6 +147,14 @@ export default function CollectionScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { alignItems: "center", justifyContent: "center", gap: spacing.md, padding: spacing.lg },
+  search: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    padding: spacing.md,
+    fontSize: 15,
+    margin: spacing.md,
+    marginBottom: 0,
+  },
   list: { padding: spacing.md, gap: spacing.sm },
   emptyContainer: { flexGrow: 1, justifyContent: "center" },
   row: {

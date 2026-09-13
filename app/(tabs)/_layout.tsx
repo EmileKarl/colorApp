@@ -25,6 +25,15 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          title: "Accueil",
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? "home" : "home-outline"} color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="scan"
+        options={{
           title: "Scanner",
           tabBarIcon: ({ color, size, focused }) => (
             <TabIcon name={focused ? "scan" : "scan-outline"} color={color} size={size} />
@@ -37,6 +46,15 @@ export default function TabsLayout() {
           title: "Palettes",
           tabBarIcon: ({ color, size, focused }) => (
             <TabIcon name={focused ? "color-filter" : "color-filter-outline"} color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="create"
+        options={{
+          title: "Créer",
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? "sparkles" : "sparkles-outline"} color={color} size={size} />
           ),
         }}
       />

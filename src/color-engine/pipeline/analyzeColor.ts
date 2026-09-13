@@ -15,6 +15,7 @@ import {
   centerRoi,
   expandRegion,
   extractSurround,
+  regionAt,
   toRgbSamples,
   type Region,
 } from "../segmentation/roi";
@@ -53,6 +54,12 @@ export type AnalyzeColorInput = {
 export type AnalyzeColorOptions = {
   /** ROI side as a fraction of the smaller image side. Default 0.4. */
   roiFraction?: number;
+  /**
+   * Where to centre the ROI, as fractions of width/height in 0–1.
+   * Omitted means the centre of the frame (the viewfinder reticle).
+   * Set by tap-to-color, which samples wherever the user touched.
+   */
+  roiCenter?: { x: number; y: number };
   /** Apply illuminant estimation and correction. Default true. */
   applyColorConstancy?: boolean;
   /** Seed for the deterministic clustering. Default 42. */
@@ -147,13 +154,26 @@ export function analyzeColor(
 ): AnalyzeColorResult {
   const {
     roiFraction = 0.4,
+    roiCenter,
     applyColorConstancy = true,
     seed = 42,
     camera = null,
     environment = null,
   } = options;
 
-  const roi = centerRoi(image.rgba, image.width, image.height, roiFraction);
+  // Tap-to-color samples a tighter region than the viewfinder reticle: the
+  // user is pointing at a specific spot, so a wide ROI would average in
+  // whatever surrounds it and defeat the purpose of tapping precisely.
+  const roi = roiCenter
+    ? regionAt(
+        image.rgba,
+        image.width,
+        image.height,
+        roiCenter.x,
+        roiCenter.y,
+        Math.min(roiFraction, 0.15),
+      )
+    : centerRoi(image.rgba, image.width, image.height, roiFraction);
   const imageQuality = assessImageQuality(roi.rgba, roi.region.width, roi.region.height);
 
   // --- Illuminant estimation -------------------------------------------------

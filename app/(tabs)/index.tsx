@@ -1,233 +1,177 @@
 import { Ionicons } from "@expo/vector-icons";
-import { CameraView, useCameraPermissions, type CameraType } from "expo-camera";
 import * as Haptics from "expo-haptics";
-import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useMemo } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { EmptyState } from "../../src/components/EmptyState";
-import { ErrorBanner } from "../../src/components/ErrorBanner";
-import { PrimaryButton } from "../../src/components/PrimaryButton";
+import { PaletteStrip } from "../../src/components/PaletteStrip";
+import { useAuth } from "../../src/context/AuthContext";
+import { useRecentColors } from "../../src/context/RecentColorsContext";
+import { colorOfTheDay, greeting } from "../../src/domain/colorOfTheDay";
+import { readableTextColor } from "../../src/domain/contrast";
+import { generatePalette } from "../../src/domain/palette";
 import { spacing, useTheme } from "../../src/theme";
 
-export default function ScanScreen() {
+/**
+ * Home (spec §3).
+ *
+ * The color content is the hero: the daily color fills a large surface and its
+ * own text color is measured against it, so the block stays legible whatever
+ * color the day lands on.
+ */
+export default function HomeScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const [permission, requestPermission] = useCameraPermissions();
-  const cameraRef = useRef<CameraView>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [facing, setFacing] = useState<CameraType>("back");
-  const [torchOn, setTorchOn] = useState(false);
+  const { profile } = useAuth();
+  const { colors: recent } = useRecentColors();
 
-  const goToResult = (uri: string) => {
-    router.push({ pathname: "/result", params: { uri } });
-  };
+  // Recomputed only when the calendar day changes, not on every render.
+  const daily = useMemo(() => colorOfTheDay(), []);
+  const dailyPalette = useMemo(() => generatePalette(daily.rgb, "modern", 5), [daily]);
+  const dailyText = readableTextColor(daily.rgb);
 
-  const onCapture = async () => {
-    if (!cameraRef.current) return;
-    setError(null);
-    setBusy(true);
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.6 });
-      if (photo?.uri) goToResult(photo.uri);
-    } catch {
-      setError("La capture a échoué. Réessaie.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const onToggleFacing = () => {
-    Haptics.selectionAsync();
-    setFacing((prev) => (prev === "back" ? "front" : "back"));
-    setTorchOn(false); // front cameras don't have a torch
-  };
-
-  const onToggleTorch = () => {
-    Haptics.selectionAsync();
-    setTorchOn((prev) => !prev);
-  };
-
-  const onPickFromGallery = async () => {
-    setError(null);
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      setError("Autorisation galerie refusée.");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.6,
-    });
-    if (!result.canceled && result.assets[0]?.uri) {
-      goToResult(result.assets[0].uri);
-    }
-  };
-
-  if (!permission) {
-    return <EmptyState title="Chargement des permissions…" />;
-  }
-
-  if (!permission.granted) {
-    return (
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <EmptyState
-          title="Autorisation caméra requise"
-          subtitle="Color Code a besoin d'accéder à la caméra pour scanner une couleur. Tu peux aussi choisir une photo existante."
-        />
-        <View style={styles.actions}>
-          <PrimaryButton label="Autoriser la caméra" onPress={requestPermission} />
-          <PrimaryButton
-            label="Choisir une photo"
-            onPress={onPickFromGallery}
-            variant="secondary"
-          />
-        </View>
-      </View>
-    );
-  }
+  const name = profile?.display_name ?? profile?.username ?? null;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.cameraWrap}>
-        <CameraView
-          ref={cameraRef}
-          style={styles.camera}
-          facing={facing}
-          enableTorch={facing === "back" && torchOn}
-        />
-        {/* Marks the area extractDominantColor actually samples (the centered
-            40% square), so what the user aims at is what gets measured. */}
-        <View style={styles.reticleLayer} pointerEvents="none">
-          <View style={styles.reticle} />
-        </View>
-
-        <View style={styles.overlayControls} pointerEvents="box-none">
-          {facing === "back" ? (
-            <Pressable
-              onPress={onToggleTorch}
-              accessibilityRole="button"
-              accessibilityLabel={torchOn ? "Éteindre la lampe" : "Allumer la lampe"}
-              style={[styles.overlayButton, { backgroundColor: theme.surface + "cc" }]}
-            >
-              <Ionicons
-                name={torchOn ? "flash" : "flash-outline"}
-                size={22}
-                color={theme.text}
-              />
-            </Pressable>
-          ) : (
-            <View style={styles.overlayButton} />
-          )}
-          <Pressable
-            onPress={onToggleFacing}
-            accessibilityRole="button"
-            accessibilityLabel="Changer de caméra"
-            style={[styles.overlayButton, { backgroundColor: theme.surface + "cc" }]}
-          >
-            <Ionicons name="camera-reverse-outline" size={22} color={theme.text} />
-          </Pressable>
-        </View>
-      </View>
-
-      {error ? <ErrorBanner message={error} /> : null}
-
-      <View style={styles.actions}>
-        <View style={styles.shutterRow}>
-          <Pressable
-            onPress={onPickFromGallery}
-            accessibilityRole="button"
-            accessibilityLabel="Choisir une photo depuis la galerie"
-            style={[styles.galleryButton, { borderColor: theme.border }]}
-          >
-            <Ionicons name="images-outline" size={22} color={theme.text} />
-          </Pressable>
-
-          <Pressable
-            onPress={onCapture}
-            disabled={busy}
-            accessibilityRole="button"
-            accessibilityLabel="Scanner la couleur"
-            style={({ pressed }) => [
-              styles.shutter,
-              { borderColor: theme.accent, opacity: busy ? 0.5 : pressed ? 0.8 : 1 },
-            ]}
-          >
-            <View style={[styles.shutterInner, { backgroundColor: theme.accent }]} />
-          </Pressable>
-
-          <View style={styles.galleryButton} />
-        </View>
-        <Text style={[styles.hint, { color: theme.subtext }]}>
-          {busy
-            ? "Analyse en cours…"
-            : "Place la couleur dans le carré, puis appuie sur le déclencheur"}
+    <ScrollView
+      style={{ backgroundColor: theme.background }}
+      contentContainerStyle={styles.content}
+    >
+      <View style={styles.header}>
+        <Text style={[styles.greeting, { color: theme.text }]}>
+          {greeting()}
+          {name ? `, ${name}` : ""}
+        </Text>
+        <Text style={[styles.subtitle, { color: theme.subtext }]}>
+          Découvre, mesure et compose des couleurs.
         </Text>
       </View>
-    </View>
+
+      <Pressable
+        onPress={() => {
+          Haptics.selectionAsync();
+          router.push({ pathname: "/compare", params: { a: daily.hex } });
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`Couleur du jour : ${daily.name}, ${daily.hex}`}
+        style={[styles.daily, { backgroundColor: daily.hex }]}
+      >
+        <Text style={[styles.dailyLabel, { color: rgbCss(dailyText) }]}>Couleur du jour</Text>
+        <Text style={[styles.dailyName, { color: rgbCss(dailyText) }]}>{daily.name}</Text>
+        <Text style={[styles.dailyHex, { color: rgbCss(dailyText) }]}>
+          {daily.hex.toUpperCase()}
+        </Text>
+      </Pressable>
+
+      <PaletteStrip palette={dailyPalette} />
+
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>Actions rapides</Text>
+      <View style={styles.actions}>
+        <QuickAction
+          icon="scan-outline"
+          label="Scanner"
+          onPress={() => router.push("/(tabs)/scan")}
+          theme={theme}
+        />
+        <QuickAction
+          icon="color-filter-outline"
+          label="Palettes"
+          onPress={() => router.push("/(tabs)/palettes")}
+          theme={theme}
+        />
+        <QuickAction
+          icon="git-compare-outline"
+          label="Comparer"
+          onPress={() => router.push("/compare")}
+          theme={theme}
+        />
+      </View>
+
+      {recent.length > 0 ? (
+        <>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Couleurs récentes</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.recentRow}>
+              {recent.map((entry) => (
+                <Pressable
+                  key={entry.hex}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    router.push({ pathname: "/compare", params: { a: entry.hex } });
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Couleur ${entry.hex}`}
+                  style={[
+                    styles.recentSwatch,
+                    { backgroundColor: entry.hex, borderColor: theme.border },
+                  ]}
+                />
+              ))}
+            </View>
+          </ScrollView>
+        </>
+      ) : (
+        <Text style={[styles.empty, { color: theme.subtext }]}>
+          Scanne ta première couleur pour la retrouver ici.
+        </Text>
+      )}
+    </ScrollView>
   );
 }
 
+function QuickAction({
+  icon,
+  label,
+  onPress,
+  theme,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  theme: ReturnType<typeof useTheme>;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={[styles.action, { backgroundColor: theme.surface, borderColor: theme.border }]}
+    >
+      <Ionicons name={icon} size={22} color={theme.text} />
+      <Text style={[styles.actionLabel, { color: theme.text }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+const rgbCss = (rgb: { r: number; g: number; b: number }) => `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  cameraWrap: { flex: 1, margin: spacing.md, borderRadius: 24, overflow: "hidden" },
-  camera: { flex: 1 },
-  reticleLayer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  reticle: {
-    width: "40%",
-    aspectRatio: 1,
-    maxWidth: 180,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.9)",
-  },
-  overlayControls: {
-    position: "absolute",
-    top: spacing.md,
-    right: spacing.md,
-    gap: spacing.sm,
-  },
-  overlayButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actions: { padding: spacing.md, gap: spacing.sm, alignItems: "center" },
-  shutterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  shutter: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    borderWidth: 4,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  shutterInner: { width: 60, height: 60, borderRadius: 30 },
-  galleryButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
+  header: { gap: 4 },
+  greeting: { fontSize: 26, fontWeight: "700" },
+  subtitle: { fontSize: 13 },
+  daily: { borderRadius: 24, padding: spacing.lg, gap: 2, minHeight: 168, justifyContent: "flex-end" },
+  dailyLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
+  dailyName: { fontSize: 28, fontWeight: "700" },
+  dailyHex: { fontSize: 14, fontVariant: ["tabular-nums"] },
+  sectionTitle: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 },
+  actions: { flexDirection: "row", gap: spacing.sm },
+  action: {
+    flex: 1,
     borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    paddingVertical: spacing.md,
     alignItems: "center",
-    justifyContent: "center",
+    gap: 6,
   },
-  hint: { fontSize: 12, textAlign: "center" },
+  actionLabel: { fontSize: 12, fontWeight: "600" },
+  recentRow: { flexDirection: "row", gap: spacing.xs },
+  recentSwatch: {
+    width: 52,
+    height: 52,
+    borderRadius: 15,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginRight: spacing.xs,
+  },
+  empty: { fontSize: 13 },
 });

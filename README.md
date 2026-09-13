@@ -7,7 +7,9 @@ Application mobile Android + iOS construite avec [Expo](https://expo.dev) (React
 TypeScript) et [Supabase](https://supabase.com) (Postgres, Auth, Storage).
 
 Voir `docs/PRODUCT_DISCOVERY.md` pour l'audit de faisabilité complet, la roadmap MVP1→MVP5, la
-justification des choix techniques et l'estimation des coûts.
+justification des choix techniques et l'estimation des coûts, `docs/COLOR_ENGINE.md` pour le
+moteur colorimétrique et ses mesures, et `docs/LIMITATIONS.md` pour ce que l'application **ne
+fait pas** et pourquoi.
 
 ## Statut actuel
 
@@ -28,7 +30,11 @@ justification des choix techniques et l'estimation des coûts.
 - ✅ Accessibilité : contraste WCAG AA/AAA, simulation du daltonisme, détection des paires
   de couleurs qui se confondent
 - ✅ Comparaison de couleurs (ΔE2000 décomposé en luminosité / saturation / teinte)
-- ⏳ Écrans HOME et CREATE, Live Color temps réel, templates sociaux : non commencés
+- ✅ Accueil avec couleur du jour, Tap-to-Color (analyser n'importe quelle zone d'une photo)
+- ✅ Color Lab avec 3 niveaux de détail (Simple / Avancé / Expert)
+- ✅ Create Studio : 4 modèles × 5 formats sociaux, export PNG et partage natif
+- ✅ Recherche par famille, qualificatif ou code hexadécimal (proximité perceptuelle)
+- ❌ Live Color temps réel : **impossible dans Expo Go** — voir `docs/LIMITATIONS.md`
 - ⏳ Feed social, profils publics, gamification : prévus en MVP4 (non commencés)
 - ⏳ Paiements / fonctionnalités premium : prévus en MVP5 (non commencés)
 

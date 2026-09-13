@@ -49,6 +49,45 @@ export function centerRoi(
   return { rgba: extractRegion(rgba, width, region), region, pixelCount: side * side };
 }
 
+/**
+ * Square ROI centred on an arbitrary point — the tap-to-color case.
+ *
+ * @param centerX Horizontal position as a fraction of width, 0–1.
+ * @param centerY Vertical position as a fraction of height, 0–1.
+ * @param fraction Side length as a fraction of the smaller image side.
+ * @returns The region, clamped so it always stays fully inside the image even
+ * when the user taps near an edge — a partially out-of-bounds region would
+ * silently sample garbage.
+ */
+export function regionAt(
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+  centerX: number,
+  centerY: number,
+  fraction = 0.15,
+): RoiResult {
+  if (width <= 0 || height <= 0) throw new Error("Invalid image dimensions");
+  if (rgba.length < width * height * 4) throw new Error("Pixel buffer too small for dimensions");
+
+  const side = Math.max(1, Math.round(Math.min(width, height) * fraction));
+  const rawX = Math.round(centerX * width - side / 2);
+  const rawY = Math.round(centerY * height - side / 2);
+
+  const region: Region = {
+    x: Math.max(0, Math.min(width - side, rawX)),
+    y: Math.max(0, Math.min(height - side, rawY)),
+    width: Math.min(side, width),
+    height: Math.min(side, height),
+  };
+
+  return {
+    rgba: extractRegion(rgba, width, region),
+    region,
+    pixelCount: region.width * region.height,
+  };
+}
+
 /** Extracts an arbitrary rectangular region as a new RGBA buffer. */
 export function extractRegion(rgba: Uint8Array, imageWidth: number, region: Region): Uint8Array {
   const out = new Uint8Array(region.width * region.height * 4);

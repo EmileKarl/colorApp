@@ -34,6 +34,10 @@ export default function RootLayout() {
             name="compare"
             options={{ presentation: "modal", headerShown: true, title: "Comparer" }}
           />
+          <Stack.Screen
+            name="tap"
+            options={{ presentation: "modal", headerShown: true, title: "Choisir une zone" }}
+          />
         </Stack>
         </RecentColorsProvider>
       </AuthProvider>

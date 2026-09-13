@@ -23,10 +23,16 @@ import { base64ToBytes } from "./pixels";
  */
 const ANALYSIS_WIDTH = 96;
 
-/** Decodes an image URI into raw RGBA pixels via a lossless PNG round-trip. */
-async function decodeToRgba(
-  imageUri: string,
-): Promise<{ rgba: Uint8Array; width: number; height: number }> {
+export type DecodedImage = { rgba: Uint8Array; width: number; height: number };
+
+/**
+ * Decodes an image URI into raw RGBA pixels via a lossless PNG round-trip.
+ *
+ * Exported so tap-to-color can decode once and then sample many regions from
+ * the same buffer — re-decoding the file on every tap would make the
+ * interaction sluggish for no benefit.
+ */
+export async function decodeImageToRgba(imageUri: string): Promise<DecodedImage> {
   const downscaled = await ImageManipulator.manipulateAsync(
     imageUri,
     [{ resize: { width: ANALYSIS_WIDTH } }],
@@ -60,8 +66,25 @@ export async function analyzeImageColor(
   imageUri: string,
   camera?: CameraContext,
 ): Promise<AnalyzeColorResult> {
-  const image = await decodeToRgba(imageUri);
+  const image = await decodeImageToRgba(imageUri);
   return analyzeColor(image, { camera });
+}
+
+/**
+ * Analyses an already-decoded image, optionally at a specific point.
+ *
+ * Synchronous by design: on a 96px buffer the whole pipeline runs in a few
+ * milliseconds, so tap-to-color can update its readout within the same frame
+ * as the touch rather than through a promise.
+ *
+ * @param point Where to sample, as fractions of width/height in 0–1. Omitted
+ * means the centre of the frame.
+ */
+export function analyzeDecodedImage(
+  image: DecodedImage,
+  point?: { x: number; y: number },
+): AnalyzeColorResult {
+  return analyzeColor(image, { roiCenter: point });
 }
 
 /**

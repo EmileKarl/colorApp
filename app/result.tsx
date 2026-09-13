@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, View
 import ViewShot, { type ViewShotRef } from "react-native-view-shot";
 
 import { ColorSwatch } from "../src/components/ColorSwatch";
+import { ColorLab } from "../src/components/ColorLab";
 import { ConfidencePanel } from "../src/components/ConfidencePanel";
 import { CodeRow } from "../src/components/CodeRow";
 import { ErrorBanner } from "../src/components/ErrorBanner";
@@ -230,6 +231,8 @@ export default function ResultScreen() {
 
       {analysis ? <ConfidencePanel analysis={analysis} /> : null}
 
+      {analysis ? <ColorLab result={analysis} /> : null}
+
       <View style={styles.harmonySection}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Palette harmonieuse</Text>
         <HarmonyPalette hex={hex} />
@@ -280,6 +283,11 @@ export default function ResultScreen() {
           disabled={saved}
         />
         <PrimaryButton label="Partager la carte" onPress={onShare} variant="secondary" />
+        <PrimaryButton
+          label="Choisir une autre zone de la photo"
+          onPress={() => router.push({ pathname: "/tap", params: { uri } })}
+          variant="secondary"
+        />
         <PrimaryButton
           label="Comparer avec une autre couleur"
           onPress={() => router.push({ pathname: "/compare", params: { a: hex } })}

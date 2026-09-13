@@ -6,7 +6,7 @@ import { rgbToLab } from "../color-spaces/lab";
 import { computeConfidence } from "../confidence/confidenceScore";
 import { deltaE2000 } from "../metrics/deltaE2000";
 import { analyzeColor } from "../pipeline/analyzeColor";
-import { centerRoi, toRgbSamples } from "../segmentation/roi";
+import { centerRoi, regionAt, toRgbSamples } from "../segmentation/roi";
 import { renderScene } from "./fixtures/syntheticDataset";
 import type { Lab, RGB } from "../types";
 
@@ -224,6 +224,80 @@ describe("region of interest", () => {
   it("drops transparent pixels when sampling", () => {
     const rgba = new Uint8Array([10, 20, 30, 255, 40, 50, 60, 0]);
     expect(toRgbSamples(rgba)).toEqual([{ r: 10, g: 20, b: 30 }]);
+  });
+
+  it("centres an arbitrary region on the requested point", () => {
+    const rgba = new Uint8Array(20 * 20 * 4).fill(255);
+    const roi = regionAt(rgba, 20, 20, 0.25, 0.75, 0.2); // 4x4 around (5, 15)
+    expect(roi.region.width).toBe(4);
+    expect(roi.region.x).toBe(3);
+    expect(roi.region.y).toBe(13);
+  });
+
+  it("clamps a region tapped at the very edge back inside the image", () => {
+    // Without clamping this would read outside the buffer and sample garbage.
+    const rgba = new Uint8Array(20 * 20 * 4).fill(128);
+    const topLeft = regionAt(rgba, 20, 20, 0, 0, 0.4);
+    expect(topLeft.region.x).toBe(0);
+    expect(topLeft.region.y).toBe(0);
+
+    const bottomRight = regionAt(rgba, 20, 20, 1, 1, 0.4);
+    expect(bottomRight.region.x + bottomRight.region.width).toBeLessThanOrEqual(20);
+    expect(bottomRight.region.y + bottomRight.region.height).toBeLessThanOrEqual(20);
+  });
+});
+
+describe("tap-to-color", () => {
+  /** Image split into four differently-coloured quadrants. */
+  function quadrants(): { rgba: Uint8Array; width: number; height: number } {
+    const size = 64;
+    const rgba = new Uint8Array(size * size * 4);
+    const colors: RGB[] = [
+      { r: 200, g: 40, b: 40 }, // top-left
+      { r: 40, g: 160, b: 60 }, // top-right
+      { r: 40, g: 60, b: 200 }, // bottom-left
+      { r: 220, g: 200, b: 60 }, // bottom-right
+    ];
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const quadrant = (y < size / 2 ? 0 : 2) + (x < size / 2 ? 0 : 1);
+        const color = colors[quadrant];
+        const offset = (y * size + x) * 4;
+        rgba[offset] = color.r;
+        rgba[offset + 1] = color.g;
+        rgba[offset + 2] = color.b;
+        rgba[offset + 3] = 255;
+      }
+    }
+    return { rgba, width: size, height: size };
+  }
+
+  it("samples the quadrant the user actually tapped", () => {
+    const image = quadrants();
+    const expected: [{ x: number; y: number }, RGB][] = [
+      [{ x: 0.25, y: 0.25 }, { r: 200, g: 40, b: 40 }],
+      [{ x: 0.75, y: 0.25 }, { r: 40, g: 160, b: 60 }],
+      [{ x: 0.25, y: 0.75 }, { r: 40, g: 60, b: 200 }],
+      [{ x: 0.75, y: 0.75 }, { r: 220, g: 200, b: 60 }],
+    ];
+
+    for (const [point, truth] of expected) {
+      const result = analyzeColor(image, { roiCenter: point, applyColorConstancy: false });
+      expect(deltaE2000(result.lab, rgbToLab(truth))).toBeLessThan(2);
+    }
+  });
+
+  it("returns different colors for different tap points", () => {
+    const image = quadrants();
+    const a = analyzeColor(image, { roiCenter: { x: 0.25, y: 0.25 } });
+    const b = analyzeColor(image, { roiCenter: { x: 0.75, y: 0.75 } });
+    expect(a.dominantColor.hex).not.toBe(b.dominantColor.hex);
+  });
+
+  it("still works when tapping the extreme corner", () => {
+    const image = quadrants();
+    const result = analyzeColor(image, { roiCenter: { x: 0, y: 0 }, applyColorConstancy: false });
+    expect(deltaE2000(result.lab, rgbToLab({ r: 200, g: 40, b: 40 }))).toBeLessThan(2);
   });
 });
 
