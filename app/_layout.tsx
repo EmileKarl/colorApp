@@ -58,6 +58,18 @@ export default function RootLayout() {
                 name="library/creations"
                 options={{ headerShown: true, title: "Mes créations" }}
               />
+              <Stack.Screen
+                name="library/collections"
+                options={{ headerShown: true, title: "Collections" }}
+              />
+              <Stack.Screen
+                name="collections/[id]"
+                options={{ headerShown: true, title: "Collection" }}
+              />
+              <Stack.Screen
+                name="creations/[id]"
+                options={{ headerShown: true, title: "Création" }}
+              />
               <Stack.Screen name="lab" options={{ headerShown: true, title: "Color Lab" }} />
               <Stack.Screen
                 name="objects-check"

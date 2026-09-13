@@ -89,6 +89,12 @@ export default function ProfileScreen() {
           variant="secondary"
         />
         <PrimaryButton
+          label="Mes collections"
+          icon="albums-outline"
+          onPress={() => router.push("/library/collections")}
+          variant="secondary"
+        />
+        <PrimaryButton
           label="Mes palettes"
           icon="color-filter-outline"
           onPress={() => router.push("/library/palettes")}
