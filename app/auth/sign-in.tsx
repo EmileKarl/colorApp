@@ -1,11 +1,13 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text } from "react-native";
 
 import { ErrorBanner } from "../../src/components/ErrorBanner";
+import { Field } from "../../src/components/Field";
 import { PrimaryButton } from "../../src/components/PrimaryButton";
+import { Screen } from "../../src/components/Screen";
 import { useAuth } from "../../src/context/AuthContext";
-import { spacing, useTheme } from "../../src/theme";
+import { spacing, type, useTheme } from "../../src/theme";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -40,42 +42,39 @@ export default function SignInScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <TextInput
-        placeholder="Courriel"
-        placeholderTextColor={theme.subtext}
+    <Screen contentStyle={styles.content}>
+      <Field
+        label="Courriel"
+        placeholder="toi@exemple.com"
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
-        style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+        returnKeyType="next"
       />
-      <TextInput
-        placeholder="Mot de passe"
-        placeholderTextColor={theme.subtext}
+      <Field
+        label="Mot de passe"
+        placeholder="••••••••"
         secureTextEntry
         autoComplete="password"
         value={password}
         onChangeText={setPassword}
-        style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+        returnKeyType="go"
+        onSubmitEditing={onSubmit}
       />
       {error ? <ErrorBanner message={error} /> : null}
       <PrimaryButton label="Se connecter" onPress={onSubmit} loading={busy} />
-      <Text style={[styles.link, { color: theme.subtext }]} onPress={() => router.replace("/auth/sign-up")}>
-        Pas encore de compte ? Crée-en un.
-      </Text>
-    </View>
+      <Pressable onPress={() => router.replace("/auth/sign-up")} accessibilityRole="link">
+        <Text style={[type.caption, styles.link, { color: theme.subtext }]}>
+          Pas encore de compte ? Crée-en un.
+        </Text>
+      </Pressable>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: spacing.lg, gap: spacing.md },
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    padding: spacing.md,
-    fontSize: 15,
-  },
-  link: { textAlign: "center", fontSize: 13, textDecorationLine: "underline" },
+  content: { gap: spacing.md, paddingTop: spacing.lg },
+  link: { textAlign: "center", textDecorationLine: "underline" },
 });

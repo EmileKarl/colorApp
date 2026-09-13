@@ -1,13 +1,16 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text } from "react-native";
 
 import { ErrorBanner } from "../../src/components/ErrorBanner";
+import { Field } from "../../src/components/Field";
 import { PrimaryButton } from "../../src/components/PrimaryButton";
+import { Screen } from "../../src/components/Screen";
 import { useAuth } from "../../src/context/AuthContext";
-import { spacing, useTheme } from "../../src/theme";
+import { spacing, type, useTheme } from "../../src/theme";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD = 8;
 
 export default function SignUpScreen() {
   const theme = useTheme();
@@ -20,14 +23,19 @@ export default function SignUpScreen() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
+  // Inline validation, shown only once the user has typed something: flagging
+  // an untouched field as invalid reads as an accusation rather than help.
+  const passwordTooShort = password.length > 0 && password.length < MIN_PASSWORD;
+  const mismatch = confirmPassword.length > 0 && password !== confirmPassword;
+
   const onSubmit = async () => {
     setError(null);
     if (!EMAIL_RE.test(email.trim())) {
       setError("Adresse courriel invalide.");
       return;
     }
-    if (password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères.");
+    if (password.length < MIN_PASSWORD) {
+      setError(`Le mot de passe doit contenir au moins ${MIN_PASSWORD} caractères.`);
       return;
     }
     if (password !== confirmPassword) {
@@ -47,71 +55,70 @@ export default function SignUpScreen() {
 
   if (done) {
     return (
-      <View style={[styles.container, styles.center, { backgroundColor: theme.background }]}>
-        <Text style={[styles.title, { color: theme.text }]}>Vérifie ta boîte courriel</Text>
-        <Text style={[styles.subtitle, { color: theme.subtext }]}>
+      <Screen center contentStyle={styles.content}>
+        <Text style={[type.heading, styles.centerText, { color: theme.text }]}>
+          Vérifie ta boîte courriel
+        </Text>
+        <Text style={[type.body, styles.centerText, { color: theme.subtext }]}>
           Un lien de confirmation vient de t’être envoyé pour activer ton compte.
         </Text>
         <PrimaryButton label="Retour" onPress={() => router.back()} />
-      </View>
+      </Screen>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.subtitle, { color: theme.subtext }]}>
+    <Screen contentStyle={styles.content}>
+      <Text style={[type.caption, { color: theme.subtext }]}>
         En créant un compte, tu acceptes que ton nom d’utilisateur et les couleurs que tu
-        proposes soient visibles publiquement dans la communauté.
+        proposes publiquement soient visibles par les autres. Tes créations restent privées
+        par défaut.
       </Text>
-      <TextInput
-        placeholder="Courriel"
-        placeholderTextColor={theme.subtext}
+      <Field
+        label="Courriel"
+        placeholder="toi@exemple.com"
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
-        style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+        returnKeyType="next"
       />
-      <TextInput
-        placeholder="Mot de passe (8 caractères min.)"
-        placeholderTextColor={theme.subtext}
+      <Field
+        label="Mot de passe"
+        placeholder="••••••••"
         secureTextEntry
         autoComplete="password-new"
         value={password}
         onChangeText={setPassword}
-        style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+        invalid={passwordTooShort}
+        hint={passwordTooShort ? `Au moins ${MIN_PASSWORD} caractères.` : undefined}
+        returnKeyType="next"
       />
-      <TextInput
-        placeholder="Confirmer le mot de passe"
-        placeholderTextColor={theme.subtext}
+      <Field
+        label="Confirmation"
+        placeholder="••••••••"
         secureTextEntry
         value={confirmPassword}
         onChangeText={setConfirmPassword}
-        style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+        invalid={mismatch}
+        hint={mismatch ? "Les deux mots de passe diffèrent." : undefined}
+        returnKeyType="go"
+        onSubmitEditing={onSubmit}
       />
       {error ? <ErrorBanner message={error} /> : null}
       <PrimaryButton label="Créer le compte" onPress={onSubmit} loading={busy} />
-      <Text
-        style={[styles.link, { color: theme.subtext }]}
-        onPress={() => router.replace("/auth/sign-in")}
-      >
-        Déjà un compte ? Connecte-toi.
-      </Text>
-    </View>
+      <Pressable onPress={() => router.replace("/auth/sign-in")} accessibilityRole="link">
+        <Text style={[type.caption, styles.link, { color: theme.subtext }]}>
+          Déjà un compte ? Connecte-toi.
+        </Text>
+      </Pressable>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: spacing.lg, gap: spacing.md },
-  center: { alignItems: "center", justifyContent: "center", gap: spacing.md },
-  title: { fontSize: 18, fontWeight: "700" },
-  subtitle: { fontSize: 13, textAlign: "center" },
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    padding: spacing.md,
-    fontSize: 15,
-  },
-  link: { textAlign: "center", fontSize: 13, textDecorationLine: "underline" },
+  content: { gap: spacing.md, paddingTop: spacing.lg },
+  centerText: { textAlign: "center" },
+  link: { textAlign: "center", textDecorationLine: "underline" },
 });
