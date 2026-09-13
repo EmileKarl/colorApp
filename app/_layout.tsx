@@ -43,6 +43,17 @@ export default function RootLayout() {
                 name="tap"
                 options={{ presentation: "modal", headerShown: true, title: "Choisir une zone" }}
               />
+              {/* Palettes and the color library left the tab bar when it came
+                  down to the five tabs of §3. They are reached from Accueil,
+                  Créer and Profil instead of being deleted. */}
+              <Stack.Screen
+                name="library/palettes"
+                options={{ headerShown: true, title: "Palettes" }}
+              />
+              <Stack.Screen
+                name="library/colors"
+                options={{ headerShown: true, title: "Mes couleurs" }}
+              />
             </Stack>
           </RecentColorsProvider>
         </AuthProvider>

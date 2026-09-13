@@ -7,7 +7,7 @@ import {
   normalizeHex,
 } from "./color";
 import type { ColorFamily } from "./color";
-import type { ColorNameRankingRow, ColorRow } from "../types/database";
+import type { ColorNameRankingRow, CommunityColorRow } from "../types/database";
 
 /**
  * Looks for an existing community color close enough to `hex` to be treated
@@ -16,14 +16,14 @@ import type { ColorNameRankingRow, ColorRow } from "../types/database";
  * function client-side — this never trusts client input for anything that
  * writes data, it's a read-only lookup.
  */
-export async function findExistingColor(hex: string): Promise<ColorRow | null> {
+export async function findExistingColor(hex: string): Promise<CommunityColorRow | null> {
   if (!isValidHex(hex)) throw new Error(`Invalid hex: ${hex}`);
   const { r, g, b } = hexToRgb(hex);
   const bucketOf = (channel: number) => Math.floor(channel / 16) * 16;
   const [br, bg, bb] = [bucketOf(r), bucketOf(g), bucketOf(b)];
 
   const { data, error } = await supabase
-    .from("colors")
+    .from("community_colors")
     .select("*")
     .eq("status", "active")
     .gte("bucket_r", Math.max(0, br - 16))
@@ -37,9 +37,9 @@ export async function findExistingColor(hex: string): Promise<ColorRow | null> {
   if (!data || data.length === 0) return null;
 
   const normalized = normalizeHex(hex);
-  let closest: ColorRow | null = null;
+  let closest: CommunityColorRow | null = null;
   let closestDistance = Infinity;
-  for (const candidate of data as ColorRow[]) {
+  for (const candidate of data as CommunityColorRow[]) {
     const distance = colorDistance({ r, g, b }, { r: candidate.r, g: candidate.g, b: candidate.b });
     if (distance < closestDistance) {
       closestDistance = distance;
@@ -49,7 +49,7 @@ export async function findExistingColor(hex: string): Promise<ColorRow | null> {
 
   if (closest && closestDistance <= SAME_COLOR_THRESHOLD) return closest;
   // Also expose an "exact" hex match regardless of distance, cheap safety net.
-  return (data as ColorRow[]).find((c) => c.hex === normalized) ?? null;
+  return (data as CommunityColorRow[]).find((c) => c.hex === normalized) ?? null;
 }
 
 export async function createColor(params: {
@@ -57,11 +57,11 @@ export async function createColor(params: {
   family: ColorFamily;
   discoveredBy: string;
   coverImageUrl?: string;
-}): Promise<ColorRow> {
+}): Promise<CommunityColorRow> {
   const { hex, family, discoveredBy, coverImageUrl } = params;
   const { r, g, b } = hexToRgb(hex);
   const { data, error } = await supabase
-    .from("colors")
+    .from("community_colors")
     .insert({
       hex: normalizeHex(hex),
       r,
@@ -75,7 +75,7 @@ export async function createColor(params: {
     .single();
 
   if (error) throw error;
-  return data as ColorRow;
+  return data as CommunityColorRow;
 }
 
 export async function proposeColorName(params: {

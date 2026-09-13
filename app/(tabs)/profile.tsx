@@ -2,10 +2,13 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 
+import { Card, SectionHeader } from "../../src/components/Card";
 import { ErrorBanner } from "../../src/components/ErrorBanner";
 import { PrimaryButton } from "../../src/components/PrimaryButton";
+import { Screen } from "../../src/components/Screen";
+import { StateView } from "../../src/components/StateView";
 import { useAuth } from "../../src/context/AuthContext";
-import { spacing, useTheme } from "../../src/theme";
+import { spacing, type, useTheme } from "../../src/theme";
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -16,22 +19,24 @@ export default function ProfileScreen() {
 
   if (!user) {
     return (
-      <View style={[styles.container, styles.center, { backgroundColor: theme.background }]}>
-        <Text style={[styles.title, { color: theme.text }]}>Tu n’es pas connecté(e)</Text>
-        <PrimaryButton label="Se connecter" onPress={() => router.push("/auth/sign-in")} />
-        <PrimaryButton
-          label="Créer un compte"
-          onPress={() => router.push("/auth/sign-up")}
-          variant="secondary"
-        />
-      </View>
+      <Screen center>
+        <StateView kind="signed_out" />
+        <View style={styles.actions}>
+          <PrimaryButton label="Se connecter" onPress={() => router.push("/auth/sign-in")} />
+          <PrimaryButton
+            label="Créer un compte"
+            onPress={() => router.push("/auth/sign-up")}
+            variant="secondary"
+          />
+        </View>
+      </Screen>
     );
   }
 
   const onDeleteAccount = () => {
     Alert.alert(
       "Supprimer le compte",
-      "Cette action est définitive : ton profil, ta collection privée et tes votes seront supprimés. Continuer ?",
+      "Cette action est définitive : ton profil, tes couleurs, tes palettes et tes créations seront supprimés. Continuer ?",
       [
         { text: "Annuler", style: "cancel" },
         {
@@ -54,21 +59,53 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.content}>
-        <Text style={[styles.title, { color: theme.text }]}>{user.email}</Text>
-        <Text style={[styles.subtitle, { color: theme.subtext }]}>
+    <Screen contentStyle={styles.content}>
+      <Card>
+        <Text style={[type.heading, { color: theme.text }]} numberOfLines={1}>
+          {user.email}
+        </Text>
+        <Text style={[type.caption, { color: theme.subtext }]}>
           Compte créé le {new Date(user.created_at).toLocaleDateString()}
         </Text>
-        {error ? <ErrorBanner message={error} /> : null}
+      </Card>
+
+      {error ? <ErrorBanner message={error} /> : null}
+
+      <View style={styles.section}>
+        <SectionHeader
+          title="Ma bibliothèque"
+          subtitle="Tes couleurs et tes palettes enregistrées"
+        />
+        <PrimaryButton
+          label="Mes couleurs"
+          icon="color-palette-outline"
+          onPress={() => router.push("/library/colors")}
+          variant="secondary"
+        />
+        <PrimaryButton
+          label="Mes palettes"
+          icon="color-filter-outline"
+          onPress={() => router.push("/library/palettes")}
+          variant="secondary"
+        />
+      </View>
+
+      <View style={styles.section}>
+        <SectionHeader title="Compte" />
         {isModerator ? (
           <PrimaryButton
             label="File de modération"
+            icon="shield-checkmark-outline"
             onPress={() => router.push("/moderation")}
             variant="secondary"
           />
         ) : null}
-        <PrimaryButton label="Se déconnecter" onPress={signOut} variant="secondary" />
+        <PrimaryButton
+          label="Se déconnecter"
+          icon="log-out-outline"
+          onPress={signOut}
+          variant="secondary"
+        />
         <PrimaryButton
           label="Supprimer mon compte"
           onPress={onDeleteAccount}
@@ -76,14 +113,12 @@ export default function ProfileScreen() {
           loading={busy}
         />
       </View>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  center: { alignItems: "center", justifyContent: "center", gap: spacing.md, padding: spacing.lg },
-  content: { padding: spacing.lg, gap: spacing.md },
-  title: { fontSize: 18, fontWeight: "700" },
-  subtitle: { fontSize: 13 },
+  content: { gap: spacing.lg },
+  section: { gap: spacing.sm },
+  actions: { width: "100%", maxWidth: 320, gap: spacing.sm, alignSelf: "center" },
 });

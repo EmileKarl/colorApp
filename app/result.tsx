@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import ViewShot, { type ViewShotRef } from "react-native-view-shot";
 
 import { ColorSwatch } from "../src/components/ColorSwatch";
@@ -13,14 +13,17 @@ import { HarmonyPalette } from "../src/components/HarmonyPalette";
 import { PrimaryButton } from "../src/components/PrimaryButton";
 import { useAuth } from "../src/context/AuthContext";
 import { useRecentColors } from "../src/context/RecentColorsContext";
-import { saveColorToCollection } from "../src/lib/collectionApi";
+import { saveColor } from "../src/lib/colorApi";
 import { createColor, findExistingColor, proposeColorName } from "../src/lib/communityApi";
 import { analyzeImageColor } from "../src/lib/extractColor";
 import type { AnalyzeColorResult } from "../src/color-engine/pipeline/analyzeColor";
 import { FAMILY_LABEL_FR, getColorFamily, hexToRgb, nearestNamedColor, rgbToHsl } from "../src/lib/color";
 import { STARTER_COLOR_NAMES } from "../src/data/starterColorNames";
-import type { ColorRow } from "../src/types/database";
+import type { CommunityColorRow } from "../src/types/database";
 import { spacing, useTheme } from "../src/theme";
+import { Field } from "../src/components/Field";
+import { Screen } from "../src/components/Screen";
+import { StateView } from "../src/components/StateView";
 
 export default function ResultScreen() {
   const theme = useTheme();
@@ -37,7 +40,7 @@ export default function ResultScreen() {
   const [label, setLabel] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [communityColor, setCommunityColor] = useState<ColorRow | null>(null);
+  const [communityColor, setCommunityColor] = useState<CommunityColorRow | null>(null);
   const [proposedName, setProposedName] = useState("");
   const [proposing, setProposing] = useState(false);
   const [nameProposed, setNameProposed] = useState(false);
@@ -105,7 +108,14 @@ export default function ResultScreen() {
     }
     setSaving(true);
     try {
-      await saveColorToCollection({ userId: user.id, hex, label, sourceImageUrl: uri });
+      await saveColor({
+        userId: user.id,
+        hex,
+        name: label,
+        sourceType: "camera",
+        sourceImageUrl: uri,
+        uncertainty: analysis?.uncertainty,
+      });
       setSaved(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
@@ -113,7 +123,7 @@ export default function ResultScreen() {
     } finally {
       setSaving(false);
     }
-  }, [hex, label, uri, user, router]);
+  }, [hex, label, uri, user, router, analysis]);
 
   const onProposeName = useCallback(async () => {
     if (!hex) return;
@@ -136,15 +146,14 @@ export default function ResultScreen() {
     setProposing(true);
     setError(null);
     try {
-      let color = communityColor;
-      if (!color) {
-        color = await createColor({
+      const color =
+        communityColor ??
+        (await createColor({
           hex,
           family: getColorFamily(hexToRgb(hex)),
           discoveredBy: user.id,
-        });
-        setCommunityColor(color);
-      }
+        }));
+      if (!communityColor) setCommunityColor(color);
       await proposeColorName({ colorId: color.id, name, proposedBy: user.id });
       setNameProposed(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -172,22 +181,24 @@ export default function ResultScreen() {
 
   if (status === "extracting") {
     return (
-      <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={theme.accent} />
-        <Text style={[styles.loadingTitle, { color: theme.text }]}>Analyse de la couleur…</Text>
-        <Text style={[styles.loadingHint, { color: theme.subtext }]}>
-          Un bon éclairage naturel donne un résultat plus fiable.
-        </Text>
-      </View>
+      <Screen center>
+        <StateView kind="analyzing" />
+      </Screen>
     );
   }
 
   if (status === "error" || !hex) {
     return (
-      <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <ErrorBanner message={error ?? "Une erreur est survenue."} />
-        <PrimaryButton label="Retour" onPress={() => router.back()} variant="secondary" />
-      </View>
+      <Screen center>
+        <StateView
+          kind="analysis_failed"
+          message={error ?? undefined}
+          onRetry={() => router.back()}
+          retryLabel="Choisir une autre image"
+          onAlternative={() => router.push({ pathname: "/tap", params: { uri } })}
+          alternativeLabel="Choisir une autre zone"
+        />
+      </Screen>
     );
   }
 
@@ -197,10 +208,7 @@ export default function ResultScreen() {
   const suggestedName = nearestNamedColor(hex, STARTER_COLOR_NAMES)?.name ?? "Couleur sans nom";
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.background }}
-      contentContainerStyle={styles.content}
-    >
+    <Screen contentStyle={styles.content}>
       <ViewShot ref={shotRef} options={{ format: "png", quality: 0.9 }}>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <ColorSwatch hex={hex} size={140} />
@@ -243,12 +251,11 @@ export default function ResultScreen() {
         peuvent la faire varier. Pas une mesure colorimétrique professionnelle.
       </Text>
 
-      <TextInput
-        placeholder="Étiquette personnelle (optionnel)"
-        placeholderTextColor={theme.subtext}
+      <Field
+        label="Étiquette personnelle"
+        placeholder="Optionnel — ex. « mur du salon »"
         value={label}
         onChangeText={setLabel}
-        style={[styles.input, { color: theme.text, borderColor: theme.border }]}
       />
 
       <View style={[styles.proposeBox, { borderColor: theme.border }]}>
@@ -256,13 +263,11 @@ export default function ResultScreen() {
         <Text style={[styles.proposeHint, { color: theme.subtext }]}>
           Sera visible après validation par la modération, puis soumis au vote de la communauté.
         </Text>
-        <TextInput
+        <Field
           placeholder="Ex. : Bleu lagon"
-          placeholderTextColor={theme.subtext}
           value={proposedName}
           onChangeText={setProposedName}
           editable={!nameProposed}
-          style={[styles.input, { color: theme.text, borderColor: theme.border }]}
         />
         <PrimaryButton
           label={nameProposed ? "Nom envoyé pour modération ✓" : "Envoyer la proposition"}
@@ -294,7 +299,7 @@ export default function ResultScreen() {
           variant="secondary"
         />
       </View>
-    </ScrollView>
+    </Screen>
   );
 }
 

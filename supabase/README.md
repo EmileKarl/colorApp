@@ -1,17 +1,43 @@
-# Supabase — Color Code
+# Supabase — ColorLens
 
 Ce dossier contient le schéma complet (MVP1 → MVP3) de la base de données, en migrations SQL
 ordonnées. Aucune donnée d'exemple ni secret n'est inclus.
 
 ## Tables
 
+### ColorLens (§9)
+
+- `colors` — les couleurs capturées par un utilisateur (`user_id`, `hex`, `rgb`/`hsl`/`hsv`/`lab`,
+  `source_type`, `uncertainty`, `is_public`). **Privée par défaut.**
+- `palettes` + `palette_colors` — palettes enregistrées et leurs couleurs ordonnées
+- `objects` — catalogue des modèles d'objets recolorables (contenu du projet, en lecture seule
+  depuis l'app) ; `object_favorites` pour les favoris par utilisateur
+- `creations` — un objet recoloré, avec `project_data` (l'état complet du Studio) ; `likes` et la
+  vue `creation_like_counts`
+- `collections` + `collection_items` — collections nommées, hétérogènes (couleurs, palettes,
+  créations)
+- `profile_stats` (vue) — statistiques de profil calculées à la lecture
+
+### Communauté de noms votés (conservée)
+
 - `profiles` — profil public lié à `auth.users` (créé automatiquement à l'inscription)
-- `colors` — couleurs canoniques découvertes par la communauté (dédoublonnage par hex)
+- `community_colors` — couleurs canoniques découvertes par la communauté (dédoublonnage par
+  proximité perceptuelle). **Renommée depuis `colors`** : ColorLens §9 réserve ce nom à la table
+  personnelle. Voir `20260913100000_colorlens_rename_community.sql`.
 - `color_names` — noms proposés pour une couleur, avec statut de modération
 - `votes` — un vote (+1/-1) par utilisateur et par nom proposé
 - `color_name_rankings` (vue) — classement des noms approuvés par score net
-- `saved_colors` — collection privée d'un utilisateur (indépendante de la table communautaire)
 - `reports` — signalements de contenu (couleur, nom, profil) pour la modération
+
+`saved_colors` a été **migrée puis supprimée** : son contenu vit désormais dans `colors`.
+La migration copie les lignes avant de supprimer la table, donc aucune donnée n'est perdue.
+
+### Vues et RLS
+
+Les trois vues (`color_name_rankings`, `creation_like_counts`, `profile_stats`) sont déclarées en
+`security_invoker = on`. Sans cela une vue s'exécute avec les droits de son propriétaire et
+**contourne la RLS** des tables sous-jacentes — les couleurs privées d'un autre utilisateur
+seraient comptées dans ce que tu peux lire.
 
 Row Level Security (RLS) est activé sur **toutes** les tables : un utilisateur non authentifié ne
 voit que le contenu public/approuvé, un utilisateur authentifié ne modifie que ses propres
@@ -59,6 +85,34 @@ supabase db push
 
 Ou, sans CLI, coller le contenu de chaque fichier (dans l'ordre numérique) dans l'éditeur SQL du
 tableau de bord Supabase.
+
+## Buckets de stockage à créer
+
+Les migrations ne créent pas les buckets (l'API Storage n'est pas du SQL). À créer dans
+**Storage** du tableau de bord Supabase, avec ces réglages :
+
+| Bucket | Accès public | Contenu |
+|---|---|---|
+| `sources` | ❌ privé | Photos d'origine d'une couleur capturée. Lecture par URL signée uniquement. |
+| `previews` | ✅ public | Aperçus rendus des créations, pour qu'une création partagée s'affiche. |
+| `avatars` | ✅ public | Photos de profil. |
+
+Puis, pour chaque bucket, une politique qui restreint l'écriture au dossier de l'utilisateur
+(`src/lib/storageApi.ts` préfixe chaque chemin par l'`user_id`, exprès pour que cette règle soit
+un simple préfixe) :
+
+```sql
+create policy "Users write only in their own folder"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'sources' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "Users read only their own sources"
+  on storage.objects for select to authenticated
+  using (bucket_id = 'sources' and (storage.foldername(name))[1] = auth.uid()::text);
+```
+
+Répète la politique d'écriture pour `previews` et `avatars` (leur lecture est publique par
+configuration du bucket).
 
 ## Variables d'environnement requises côté application
 

@@ -76,7 +76,7 @@ export default function HomeScreen() {
         <QuickAction
           icon="color-filter-outline"
           label="Palettes"
-          onPress={() => router.push("/(tabs)/palettes")}
+          onPress={() => router.push("/library/palettes")}
           theme={theme}
         />
         <QuickAction

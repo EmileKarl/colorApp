@@ -28,6 +28,7 @@ export interface ProfileRow {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  bio: string | null;
   role: "member" | "moderator" | "admin";
   banned_at: string | null;
   ban_reason: string | null;
@@ -36,10 +37,33 @@ export interface ProfileRow {
 }
 type ProfileInsert = WithOptional<
   ProfileRow,
-  "display_name" | "avatar_url" | "role" | "banned_at" | "ban_reason" | "created_at" | "updated_at"
+  | "display_name"
+  | "avatar_url"
+  | "bio"
+  | "role"
+  | "banned_at"
+  | "ban_reason"
+  | "created_at"
+  | "updated_at"
 >;
 
-export interface ColorRow {
+export interface ProfileStatsRow {
+  user_id: string;
+  colors_captured: number;
+  palettes_created: number;
+  creations_made: number;
+  creations_shared: number;
+  remixes_made: number;
+  collections_count: number;
+  most_used_family: ColorFamilyRow | null;
+}
+
+// ---------------------------------------------------------------------------
+// Community catalogue (pre-ColorLens, renamed from `colors` — see
+// supabase/migrations/20260913100000_colorlens_rename_community.sql)
+// ---------------------------------------------------------------------------
+
+export interface CommunityColorRow {
   id: string;
   hex: string;
   r: number;
@@ -51,8 +75,8 @@ export interface ColorRow {
   status: "active" | "hidden";
   created_at: string;
 }
-type ColorInsert = WithOptional<
-  ColorRow,
+type CommunityColorInsert = WithOptional<
+  CommunityColorRow,
   "id" | "cover_image_url" | "discovered_by" | "status" | "created_at"
 >;
 
@@ -69,7 +93,13 @@ export interface ColorNameRow {
 }
 type ColorNameInsert = WithOptional<
   ColorNameRow,
-  "id" | "proposed_by" | "status" | "moderated_by" | "moderated_at" | "moderation_reason" | "created_at"
+  | "id"
+  | "proposed_by"
+  | "status"
+  | "moderated_by"
+  | "moderated_at"
+  | "moderation_reason"
+  | "created_at"
 >;
 
 export interface VoteRow {
@@ -93,19 +123,173 @@ export interface ColorNameRankingRow {
   downvotes: number;
 }
 
-export interface SavedColorRow {
+// ---------------------------------------------------------------------------
+// ColorLens §9
+// ---------------------------------------------------------------------------
+
+/** Stored alongside hex so a save keeps the precision the engine measured. */
+export type StoredRgb = { r: number; g: number; b: number };
+export type StoredHsl = { h: number; s: number; l: number };
+export type StoredHsv = { h: number; s: number; v: number };
+export type StoredLab = { L: number; a: number; b: number };
+
+export type ColorSourceType = "camera" | "gallery" | "manual" | "mix" | "palette";
+
+export interface ColorRow {
   id: string;
   user_id: string;
-  color_id: string | null;
+  name: string | null;
   hex: string;
-  label: string | null;
+  rgb: StoredRgb | null;
+  hsl: StoredHsl | null;
+  hsv: StoredHsv | null;
+  lab: StoredLab | null;
+  family: ColorFamilyRow | null;
   source_image_url: string | null;
+  source_type: ColorSourceType;
+  uncertainty: number | null;
+  is_public: boolean;
+  community_color_id: string | null;
   created_at: string;
 }
-type SavedColorInsert = WithOptional<
-  SavedColorRow,
-  "id" | "color_id" | "label" | "source_image_url" | "created_at"
+type ColorInsert = WithOptional<
+  ColorRow,
+  | "id"
+  | "name"
+  | "rgb"
+  | "hsl"
+  | "hsv"
+  | "lab"
+  | "family"
+  | "source_image_url"
+  | "source_type"
+  | "uncertainty"
+  | "is_public"
+  | "community_color_id"
+  | "created_at"
 >;
+
+export type PaletteColorRole =
+  | "dominant"
+  | "secondary"
+  | "accent"
+  | "light"
+  | "dark"
+  | "neutral";
+
+export interface PaletteRow {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  cover_image_url: string | null;
+  source_scheme: string | null;
+  is_public: boolean;
+  created_at: string;
+}
+type PaletteInsert = WithOptional<
+  PaletteRow,
+  "id" | "description" | "cover_image_url" | "source_scheme" | "is_public" | "created_at"
+>;
+
+export interface PaletteColorRow {
+  palette_id: string;
+  position: number;
+  color_id: string | null;
+  hex: string;
+  role: PaletteColorRole | null;
+}
+
+export type ObjectCategory =
+  | "fashion"
+  | "shoes"
+  | "automotive"
+  | "home"
+  | "accessories"
+  | "design";
+
+export interface ObjectRow {
+  id: string;
+  name: string;
+  category: ObjectCategory;
+  kind: "vector" | "raster";
+  thumbnail_url: string | null;
+  preview_url: string | null;
+  model_3d_url: string | null;
+  /** Shaped by `src/objects/types.ts`. Validated at the API boundary. */
+  configuration: unknown;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface CreationRow {
+  id: string;
+  user_id: string;
+  object_id: string;
+  name: string;
+  description: string | null;
+  source_color_id: string | null;
+  palette_id: string | null;
+  preview_url: string | null;
+  /** Full Studio state — shaped by `src/objects/types.ts`. */
+  project_data: unknown;
+  tags: string[];
+  is_public: boolean;
+  remixed_from: string | null;
+  created_at: string;
+  updated_at: string;
+}
+type CreationInsert = WithOptional<
+  CreationRow,
+  | "id"
+  | "description"
+  | "source_color_id"
+  | "palette_id"
+  | "preview_url"
+  | "project_data"
+  | "tags"
+  | "is_public"
+  | "remixed_from"
+  | "created_at"
+  | "updated_at"
+>;
+
+export interface CollectionRow {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  cover_url: string | null;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+}
+type CollectionInsert = WithOptional<
+  CollectionRow,
+  "id" | "description" | "cover_url" | "is_public" | "created_at" | "updated_at"
+>;
+
+export type CollectionItemType = "color" | "palette" | "creation";
+
+export interface CollectionItemRow {
+  collection_id: string;
+  item_type: CollectionItemType;
+  item_id: string;
+  position: number;
+  created_at: string;
+}
+
+export interface LikeRow {
+  user_id: string;
+  creation_id: string;
+  created_at: string;
+}
+
+export interface CreationLikeCountRow {
+  creation_id: string;
+  likes: number;
+}
 
 export interface ReportRow {
   id: string;
@@ -132,10 +316,10 @@ export interface Database {
         Update: Partial<ProfileRow>;
         Relationships: [];
       };
-      colors: {
-        Row: ColorRow;
-        Insert: ColorInsert;
-        Update: Partial<ColorRow>;
+      community_colors: {
+        Row: CommunityColorRow;
+        Insert: CommunityColorInsert;
+        Update: Partial<CommunityColorRow>;
         Relationships: [];
       };
       color_names: {
@@ -150,10 +334,58 @@ export interface Database {
         Update: Partial<VoteRow>;
         Relationships: [];
       };
-      saved_colors: {
-        Row: SavedColorRow;
-        Insert: SavedColorInsert;
-        Update: Partial<SavedColorRow>;
+      colors: {
+        Row: ColorRow;
+        Insert: ColorInsert;
+        Update: Partial<ColorRow>;
+        Relationships: [];
+      };
+      palettes: {
+        Row: PaletteRow;
+        Insert: PaletteInsert;
+        Update: Partial<PaletteRow>;
+        Relationships: [];
+      };
+      palette_colors: {
+        Row: PaletteColorRow;
+        Insert: PaletteColorRow;
+        Update: Partial<PaletteColorRow>;
+        Relationships: [];
+      };
+      objects: {
+        Row: ObjectRow;
+        Insert: ObjectRow;
+        Update: Partial<ObjectRow>;
+        Relationships: [];
+      };
+      object_favorites: {
+        Row: { user_id: string; object_id: string; created_at: string };
+        Insert: { user_id: string; object_id: string; created_at?: string };
+        Update: Partial<{ user_id: string; object_id: string }>;
+        Relationships: [];
+      };
+      creations: {
+        Row: CreationRow;
+        Insert: CreationInsert;
+        Update: Partial<CreationRow>;
+        Relationships: [];
+      };
+      collections: {
+        Row: CollectionRow;
+        Insert: CollectionInsert;
+        Update: Partial<CollectionRow>;
+        Relationships: [];
+      };
+      collection_items: {
+        Row: CollectionItemRow;
+        Insert: WithOptional<CollectionItemRow, "position" | "created_at">;
+        Update: Partial<CollectionItemRow>;
+        Relationships: [];
+      };
+      likes: {
+        Row: LikeRow;
+        Insert: WithOptional<LikeRow, "created_at">;
+        Update: Partial<LikeRow>;
         Relationships: [];
       };
       reports: {
@@ -165,6 +397,8 @@ export interface Database {
     };
     Views: {
       color_name_rankings: { Row: ColorNameRankingRow; Relationships: [] };
+      creation_like_counts: { Row: CreationLikeCountRow; Relationships: [] };
+      profile_stats: { Row: ProfileStatsRow; Relationships: [] };
     };
     Functions: {
       delete_own_account: { Args: Record<string, never>; Returns: void };

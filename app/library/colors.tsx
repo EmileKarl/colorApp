@@ -1,41 +1,35 @@
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 
-import { EmptyState } from "../../src/components/EmptyState";
 import { ErrorBanner } from "../../src/components/ErrorBanner";
+import { Field } from "../../src/components/Field";
 import { PrimaryButton } from "../../src/components/PrimaryButton";
+import { StateView } from "../../src/components/StateView";
 import { useAuth } from "../../src/context/AuthContext";
 import { searchColors } from "../../src/domain/search";
-import { deleteSavedColor, listSavedColors } from "../../src/lib/collectionApi";
-import type { SavedColorRow } from "../../src/types/database";
-import { spacing, useTheme } from "../../src/theme";
+import { deleteColor, listColors } from "../../src/lib/colorApi";
+import { FAMILY_LABEL_FR } from "../../src/lib/color";
+import { monoFontFamily, radius, spacing, type, useLayout, useTheme } from "../../src/theme";
+import type { ColorRow } from "../../src/types/database";
 
-export default function CollectionScreen() {
+export default function ColorLibraryScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { gutter } = useLayout();
   const { user } = useAuth();
-  const [items, setItems] = useState<SavedColorRow[]>([]);
+  const [items, setItems] = useState<ColorRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
   // Search runs over the already-loaded list rather than hitting the network:
-  // the collection is small, and filtering locally keeps typing instant.
+  // the library is small, and filtering locally keeps typing instant.
   const visibleItems = useMemo(() => {
     if (query.trim().length === 0) return items;
     const matches = searchColors(
       query,
-      items.map((item) => ({ hex: item.hex, label: item.label ?? undefined, id: item.id })),
+      items.map((item) => ({ hex: item.hex, label: item.name ?? undefined, id: item.id })),
     );
     const matchedIds = new Set(matches.map((match) => match.item.id));
     return items.filter((item) => matchedIds.has(item.id));
@@ -48,9 +42,9 @@ export default function CollectionScreen() {
     }
     setError(null);
     try {
-      setItems(await listSavedColors(user.id));
+      setItems(await listColors(user.id));
     } catch {
-      setError("Impossible de charger ta collection.");
+      setError("Impossible de charger tes couleurs.");
     } finally {
       setLoading(false);
     }
@@ -63,15 +57,15 @@ export default function CollectionScreen() {
     load();
   }, [load]);
 
-  const onDelete = (item: SavedColorRow) => {
-    Alert.alert("Supprimer", `Retirer ${item.hex.toUpperCase()} de ta collection ?`, [
+  const onDelete = (item: ColorRow) => {
+    Alert.alert("Supprimer", `Retirer ${item.hex.toUpperCase()} de ta bibliothèque ?`, [
       { text: "Annuler", style: "cancel" },
       {
         text: "Supprimer",
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteSavedColor(item.id);
+            await deleteColor(item.id);
             setItems((prev) => prev.filter((i) => i.id !== item.id));
           } catch {
             setError("La suppression a échoué.");
@@ -84,10 +78,7 @@ export default function CollectionScreen() {
   if (!user) {
     return (
       <View style={[styles.container, styles.center, { backgroundColor: theme.background }]}>
-        <EmptyState
-          title="Connecte-toi pour voir ta collection"
-          subtitle="Tes couleurs sauvegardées sont liées à ton compte et synchronisées dans le cloud."
-        />
+        <StateView kind="signed_out" />
         <PrimaryButton label="Se connecter" onPress={() => router.push("/auth/sign-in")} />
       </View>
     );
@@ -97,45 +88,50 @@ export default function CollectionScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {error ? <ErrorBanner message={error} /> : null}
 
-      <TextInput
-        placeholder="Rechercher : bleu foncé, neutre, #0047AB…"
-        placeholderTextColor={theme.subtext}
-        value={query}
-        onChangeText={setQuery}
-        autoCapitalize="none"
-        autoCorrect={false}
-        accessibilityLabel="Rechercher dans la collection"
-        style={[styles.search, { color: theme.text, borderColor: theme.border }]}
-      />
+      <View style={{ paddingHorizontal: gutter, paddingTop: spacing.md }}>
+        <Field
+          placeholder="Rechercher : bleu foncé, neutre, #0047AB…"
+          value={query}
+          onChangeText={setQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+          accessibilityLabel="Rechercher dans mes couleurs"
+        />
+      </View>
 
       <FlatList
         data={visibleItems}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-        contentContainerStyle={visibleItems.length === 0 ? styles.emptyContainer : styles.list}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[
+          visibleItems.length === 0 ? styles.emptyContainer : styles.list,
+          { paddingHorizontal: gutter },
+        ]}
         ListEmptyComponent={
-          !loading ? (
-            <EmptyState
-              title={query ? "Aucun résultat" : "Aucune couleur sauvegardée"}
-              subtitle={
-                query
-                  ? "Essaie une famille de couleur, un qualificatif comme « clair », ou un code hexadécimal."
-                  : "Scanne une couleur puis appuie sur « Sauvegarder » pour la retrouver ici."
-              }
-            />
-          ) : null
+          !loading ? <StateView kind={query ? "no_results" : "empty_collection"} /> : null
         }
         renderItem={({ item }) => (
           <Pressable
+            onPress={() => router.push({ pathname: "/compare", params: { a: item.hex } })}
             onLongPress={() => onDelete(item)}
-            style={[styles.row, { borderColor: theme.border }]}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.name ?? "Sans nom"}, ${item.hex}`}
+            style={({ pressed }) => [
+              styles.row,
+              { borderColor: theme.border, backgroundColor: theme.surface },
+              pressed && styles.pressed,
+            ]}
           >
             <View style={[styles.swatch, { backgroundColor: item.hex }]} />
             <View style={styles.rowText}>
-              <Text style={[styles.label, { color: theme.text }]}>
-                {item.label || "Sans étiquette"}
+              <Text style={[type.subheading, { color: theme.text }]} numberOfLines={1}>
+                {item.name || "Sans nom"}
               </Text>
-              <Text style={[styles.hex, { color: theme.subtext }]}>{item.hex.toUpperCase()}</Text>
+              <Text style={[type.caption, styles.hex, { color: theme.subtext }]}>
+                {item.hex.toUpperCase()}
+                {item.family ? ` · ${FAMILY_LABEL_FR[item.family]}` : ""}
+              </Text>
             </View>
           </Pressable>
         )}
@@ -147,15 +143,7 @@ export default function CollectionScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { alignItems: "center", justifyContent: "center", gap: spacing.md, padding: spacing.lg },
-  search: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    padding: spacing.md,
-    fontSize: 15,
-    margin: spacing.md,
-    marginBottom: 0,
-  },
-  list: { padding: spacing.md, gap: spacing.sm },
+  list: { paddingVertical: spacing.md, gap: spacing.sm },
   emptyContainer: { flexGrow: 1, justifyContent: "center" },
   row: {
     flexDirection: "row",
@@ -163,10 +151,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.sm,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 14,
+    borderRadius: radius.lg,
   },
-  swatch: { width: 44, height: 44, borderRadius: 12 },
-  rowText: { flex: 1 },
-  label: { fontSize: 15, fontWeight: "600" },
-  hex: { fontSize: 12, marginTop: 2 },
+  pressed: { opacity: 0.75 },
+  swatch: { width: 44, height: 44, borderRadius: radius.md },
+  rowText: { flex: 1, gap: 2 },
+  hex: { fontFamily: monoFontFamily },
 });
