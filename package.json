@@ -66,7 +66,8 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/.expo/",
-      "/__tests__/fixtures/"
+      "/__tests__/fixtures/",
+      "/.claude/"
     ]
   },
   "private": true
